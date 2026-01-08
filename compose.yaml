@@ -33,3 +33,22 @@ services:
                              --partitions 1 --replication-factor 1 --if-not-exists \
                              --bootstrap-server kafka:29092'"
     init: true
+
+  collector:
+    build:
+      context: .
+      dockerfile: telemetry/collector/Dockerfile
+    container_name: collector
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+      - kafka-init-topics
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
