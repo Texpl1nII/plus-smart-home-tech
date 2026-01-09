@@ -1,6 +1,5 @@
 package ru.yandex.practicum.telemetry.collector.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -11,15 +10,15 @@ import ru.yandex.practicum.telemetry.collector.service.KafkaProducerService;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@RequestMapping("/events")
 public class SensorController {
 
     private final KafkaProducerService kafkaProducerService;
 
     @PostMapping("/sensors")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void collectSensorEvent(@Valid @RequestBody SensorEvent event) {
+    public void collectSensorEvent(@RequestBody SensorEvent event) {
         log.info("Received sensor event: {}", event);
         kafkaProducerService.sendSensorEvent(event);
     }

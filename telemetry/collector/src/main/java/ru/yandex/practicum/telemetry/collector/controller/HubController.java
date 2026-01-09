@@ -11,15 +11,15 @@ import ru.yandex.practicum.telemetry.collector.service.KafkaProducerService;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@RequestMapping("/events")
 public class HubController {
 
     private final KafkaProducerService kafkaProducerService;
 
     @PostMapping("/hubs")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void collectHubEvent(@Valid @RequestBody HubEvent event) {
+    public void collectHubEvent(@RequestBody HubEvent event) {
         log.info("Received hub event: {}", event);
         kafkaProducerService.sendHubEvent(event);
     }
