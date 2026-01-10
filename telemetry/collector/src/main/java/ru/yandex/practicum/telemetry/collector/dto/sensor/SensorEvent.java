@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.NotBlank;
@@ -31,6 +32,7 @@ public abstract class SensorEvent {
     @NotBlank
     private String id;
 
+    @JsonProperty("hub_id")
     @NotBlank
     private String hubId;
 

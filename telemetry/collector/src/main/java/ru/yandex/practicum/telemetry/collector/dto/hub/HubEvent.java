@@ -1,5 +1,7 @@
 package ru.yandex.practicum.telemetry.collector.dto.hub;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.NotBlank;
@@ -27,11 +29,13 @@ import java.time.Instant;
 @AllArgsConstructor
 public abstract class HubEvent {
 
+    @JsonProperty("hub_id")
     @NotBlank
     private String hubId;
 
     private Instant timestamp = Instant.now();
 
     @NotNull
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public abstract HubEventType getType();
 }
