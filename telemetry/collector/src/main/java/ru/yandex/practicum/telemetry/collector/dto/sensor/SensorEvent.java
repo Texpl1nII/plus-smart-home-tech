@@ -32,11 +32,11 @@ public abstract class SensorEvent {
     private String id;
 
     @NotBlank(message = "hubId must not be blank")
-    private String hubId;  // camelCase - как в спецификации!
+    private String hubId;
 
     private Instant timestamp = Instant.now();
 
-    @NotNull
+    @NotNull(message = "type must not be null")
     private SensorEventType type;
 
     public SensorEventType getType() {

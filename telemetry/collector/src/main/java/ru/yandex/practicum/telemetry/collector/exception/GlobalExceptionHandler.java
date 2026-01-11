@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex) {
 
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
+        ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
@@ -31,22 +32,38 @@ public class GlobalExceptionHandler {
         response.put("error", "Validation failed");
         response.put("errors", errors);
         response.put("timestamp", Instant.now().toString());
-        response.put("status", 400);
+        response.put("status", HttpStatus.BAD_REQUEST.value());
 
         log.warn("Validation failed: {}", errors);
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);  // Исправлено
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(
+            ConstraintViolationException ex) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("error", "Constraint violation");
+        response.put("message", ex.getMessage());
+        response.put("timestamp", Instant.now().toString());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+
+        log.warn("Constraint violation: {}", ex.getMessage());
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(
+            IllegalArgumentException ex) {
+
         Map<String, Object> response = new HashMap<>();
-        response.put("error", "Invalid request");
+        response.put("error", "Invalid argument");
         response.put("message", ex.getMessage());
         response.put("timestamp", Instant.now().toString());
-        response.put("status", 400);
+        response.put("status", HttpStatus.BAD_REQUEST.value());
 
         log.warn("Invalid argument: {}", ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);  // Исправлено
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(Exception.class)
@@ -55,9 +72,9 @@ public class GlobalExceptionHandler {
         response.put("error", "Internal server error");
         response.put("message", ex.getMessage());
         response.put("timestamp", Instant.now().toString());
-        response.put("status", 500);
+        response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
 
         log.error("Internal server error", ex);
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);  // Исправлено
+        return ResponseEntity.internalServerError().body(response);
     }
 }

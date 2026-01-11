@@ -8,8 +8,8 @@ import lombok.*;
 @NoArgsConstructor
 public class TemperatureSensorEvent extends SensorEvent {
 
-    private Integer temperatureC;  // camelCase!
-    private Integer temperatureF;  // camelCase!
+    private int temperatureC;  // примитив int
+    private int temperatureF;  // примитив int
 
     @Override
     public SensorEventType getType() {

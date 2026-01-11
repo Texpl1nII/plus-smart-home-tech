@@ -8,9 +8,9 @@ import lombok.*;
 @NoArgsConstructor
 public class MotionSensorEvent extends SensorEvent {
 
-    private Integer linkQuality;  // camelCase!
-    private Boolean motion;
-    private Integer voltage;
+    private int linkQuality;  // примитив int
+    private boolean motion;   // примитив boolean
+    private int voltage;      // примитив int
 
     @Override
     public SensorEventType getType() {

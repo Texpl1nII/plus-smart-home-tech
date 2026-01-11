@@ -8,9 +8,9 @@ import lombok.*;
 @NoArgsConstructor
 public class ClimateSensorEvent extends SensorEvent {
 
-    private Integer temperatureC;  // camelCase - как temperatureC в спецификации!
-    private Integer humidity;
-    private Integer co2Level;
+    private int temperatureC;  // примитив int
+    private int humidity;      // примитив int
+    private int co2Level;      // примитив int
 
     @Override
     public SensorEventType getType() {

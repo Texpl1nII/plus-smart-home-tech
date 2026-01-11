@@ -25,37 +25,37 @@ public class AvroSerializer {
 
         if (event instanceof LightSensorEvent lightEvent) {
             LightSensorAvro lightAvro = LightSensorAvro.newBuilder()
-                    .setLinkQuality(lightEvent.getLinkQuality() != null ? lightEvent.getLinkQuality() : 0)
-                    .setLuminosity(lightEvent.getLuminosity() != null ? lightEvent.getLuminosity() : 0)
+                    .setLinkQuality(lightEvent.getLinkQuality())  // напрямую, без проверки null
+                    .setLuminosity(lightEvent.getLuminosity())    // напрямую, без проверки null
                     .build();
             builder.setPayload(lightAvro);
 
         } else if (event instanceof TemperatureSensorEvent tempEvent) {
             TemperatureSensorAvro tempAvro = TemperatureSensorAvro.newBuilder()
-                    .setTemperatureC(tempEvent.getTemperatureC() != null ? tempEvent.getTemperatureC() : 0)
-                    .setTemperatureF(tempEvent.getTemperatureF() != null ? tempEvent.getTemperatureF() : 0)
+                    .setTemperatureC(tempEvent.getTemperatureC())
+                    .setTemperatureF(tempEvent.getTemperatureF())
                     .build();
             builder.setPayload(tempAvro);
 
         } else if (event instanceof ClimateSensorEvent climateEvent) {
             ClimateSensorAvro climateAvro = ClimateSensorAvro.newBuilder()
-                    .setTemperatureC(climateEvent.getTemperatureC() != null ? climateEvent.getTemperatureC() : 0)
-                    .setHumidity(climateEvent.getHumidity() != null ? climateEvent.getHumidity() : 0)
-                    .setCo2Level(climateEvent.getCo2Level() != null ? climateEvent.getCo2Level() : 0)
+                    .setTemperatureC(climateEvent.getTemperatureC())
+                    .setHumidity(climateEvent.getHumidity())
+                    .setCo2Level(climateEvent.getCo2Level())
                     .build();
             builder.setPayload(climateAvro);
 
         } else if (event instanceof MotionSensorEvent motionEvent) {
             MotionSensorAvro motionAvro = MotionSensorAvro.newBuilder()
-                    .setLinkQuality(motionEvent.getLinkQuality() != null ? motionEvent.getLinkQuality() : 0)
-                    .setMotion(motionEvent.getMotion() != null ? motionEvent.getMotion() : false)
-                    .setVoltage(motionEvent.getVoltage() != null ? motionEvent.getVoltage() : 0)
+                    .setLinkQuality(motionEvent.getLinkQuality())
+                    .setMotion(motionEvent.isMotion())
+                    .setVoltage(motionEvent.getVoltage())
                     .build();
             builder.setPayload(motionAvro);
 
         } else if (event instanceof SwitchSensorEvent switchEvent) {
             SwitchSensorAvro switchAvro = SwitchSensorAvro.newBuilder()
-                    .setState(switchEvent.getState() != null ? switchEvent.getState() : false)
+                    .setState(switchEvent.isState())
                     .build();
             builder.setPayload(switchAvro);
         } else {
@@ -73,11 +73,14 @@ public class AvroSerializer {
                 .setTimestamp(event.getTimestamp().toEpochMilli());
 
         if (event instanceof DeviceAddedEvent deviceAdded) {
+            // Убеждаемся, что deviceType не null
+            if (deviceAdded.getDeviceType() == null) {
+                throw new IllegalArgumentException("deviceType cannot be null in DeviceAddedEvent");
+            }
+
             DeviceAddedEventAvro deviceAvro = DeviceAddedEventAvro.newBuilder()
                     .setId(deviceAdded.getId())
-                    .setType(deviceAdded.getDeviceType() != null ?
-                            DeviceTypeAvro.valueOf(deviceAdded.getDeviceType().name()) :
-                            null)
+                    .setType(DeviceTypeAvro.valueOf(deviceAdded.getDeviceType().name()))
                     .build();
             builder.setPayload(deviceAvro);
 

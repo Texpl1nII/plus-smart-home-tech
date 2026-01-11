@@ -13,7 +13,7 @@ import java.time.Instant;
 public class DeviceAddedEvent extends HubEvent {
 
     private String id;
-    private DeviceType deviceType;  // camelCase!
+    private DeviceType deviceType;
 
     @JsonCreator
     public static DeviceAddedEvent create(
@@ -25,7 +25,13 @@ public class DeviceAddedEvent extends HubEvent {
         DeviceAddedEvent event = new DeviceAddedEvent();
         event.setHubId(hubId);
         event.setId(id);
-        event.setDeviceType(deviceTypeStr != null ? DeviceType.fromJson(deviceTypeStr) : null);
+
+        // Гарантируем, что deviceType не будет null
+        if (deviceTypeStr == null) {
+            throw new IllegalArgumentException("deviceType is required");
+        }
+        event.setDeviceType(DeviceType.fromJson(deviceTypeStr));
+
         event.setType(HubEventType.DEVICE_ADDED);
         event.setTimestamp(timestamp != null ? timestamp : Instant.now());
         return event;

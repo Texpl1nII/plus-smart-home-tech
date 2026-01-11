@@ -9,7 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 public class SwitchSensorEvent extends SensorEvent {
 
-    private Boolean state;
+    private boolean state;  // примитив boolean
 
     @Override
     public SensorEventType getType() {

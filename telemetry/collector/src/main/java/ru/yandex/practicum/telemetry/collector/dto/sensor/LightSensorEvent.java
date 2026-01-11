@@ -1,5 +1,7 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 
 @Getter
@@ -8,8 +10,13 @@ import lombok.*;
 @NoArgsConstructor
 public class LightSensorEvent extends SensorEvent {
 
-    private Integer linkQuality;  // camelCase - без @JsonProperty!
-    private Integer luminosity;
+    @Min(value = 0, message = "linkQuality must be at least 0")
+    @Max(value = 100, message = "linkQuality must be at most 100")
+    private int linkQuality;
+
+    @Min(value = 0, message = "luminosity must be at least 0")
+    @Max(value = 100, message = "luminosity must be at most 100")
+    private int luminosity;
 
     @Override
     public SensorEventType getType() {
