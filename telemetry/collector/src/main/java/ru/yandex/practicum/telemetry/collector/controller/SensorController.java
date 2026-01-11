@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/telemetry")
+@RequestMapping("/events")
 public class SensorController {
 
     private final KafkaProducerService kafkaProducerService;
