@@ -1,10 +1,8 @@
 package ru.yandex.practicum.telemetry.collector.dto.hub;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import lombok.*;
 
-@JsonTypeName("DEVICE_ADDED")
 @Getter
 @Setter
 @ToString(callSuper = true)
@@ -14,11 +12,13 @@ public class DeviceAddedEvent extends HubEvent {
 
     private String id;
 
-    @JsonProperty("type")
+    @JsonProperty("device_type")
     private DeviceType deviceType;
 
-    @Override
-    public HubEventType getType() {
-        return HubEventType.DEVICE_ADDED_EVENT;
+    public DeviceAddedEvent(String hubId, String id, DeviceType deviceType) {
+        setHubId(hubId);
+        this.id = id;
+        this.deviceType = deviceType;
+        setType(HubEventType.DEVICE_ADDED);
     }
 }

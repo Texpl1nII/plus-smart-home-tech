@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.dto.hub;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
@@ -8,7 +9,10 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeviceAction {
+    @JsonProperty("sensor_id")
     private String sensorId;
+
     private ActionType type;
-    private Integer value; // Может быть null
+
+    private Integer value;
 }

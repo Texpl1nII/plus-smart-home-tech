@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum HubEventType {
-    DEVICE_ADDED_EVENT("DEVICE_ADDED"),
-    DEVICE_REMOVED_EVENT("DEVICE_REMOVED"),
-    SCENARIO_ADDED_EVENT("SCENARIO_ADDED"),
-    SCENARIO_REMOVED_EVENT("SCENARIO_REMOVED");
+    DEVICE_ADDED("DEVICE_ADDED"),
+    DEVICE_REMOVED("DEVICE_REMOVED"),
+    SCENARIO_ADDED("SCENARIO_ADDED"),
+    SCENARIO_REMOVED("SCENARIO_REMOVED");
 
     private final String jsonValue;
 
@@ -15,12 +15,12 @@ public enum HubEventType {
         this.jsonValue = jsonValue;
     }
 
-    @JsonValue  // При сериализации в JSON → "DEVICE_ADDED"
+    @JsonValue
     public String getJsonValue() {
         return jsonValue;
     }
 
-    @JsonCreator  // При десериализации из JSON "DEVICE_ADDED" → DEVICE_ADDED_EVENT
+    @JsonCreator
     public static HubEventType fromJson(String value) {
         for (HubEventType type : values()) {
             if (type.jsonValue.equals(value)) {

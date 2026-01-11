@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.dto.hub;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
@@ -8,8 +9,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ScenarioCondition {
+    @JsonProperty("sensor_id")
     private String sensorId;
+
     private ConditionType type;
+
     private ConditionOperation operation;
-    private Object value; // Может изменить на Integer, Boolean или null*
+
+    private Object value;
 }
