@@ -48,14 +48,14 @@ public class AvroSerializer {
         } else if (event instanceof MotionSensorEvent motionEvent) {
             MotionSensorAvro motionAvro = MotionSensorAvro.newBuilder()
                     .setLinkQuality(motionEvent.getLinkQuality())
-                    .setMotion(motionEvent.isMotion())
+                    .setMotion(motionEvent.getMotion())  // ← ИСПРАВЛЕНО: getMotion() вместо isMotion()
                     .setVoltage(motionEvent.getVoltage())
                     .build();
             builder.setPayload(motionAvro);
 
         } else if (event instanceof SwitchSensorEvent switchEvent) {
             SwitchSensorAvro switchAvro = SwitchSensorAvro.newBuilder()
-                    .setState(switchEvent.isState())
+                    .setState(switchEvent.getState())
                     .build();
             builder.setPayload(switchAvro);
         } else {
