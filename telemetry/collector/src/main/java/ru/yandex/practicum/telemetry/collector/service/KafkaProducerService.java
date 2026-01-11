@@ -11,10 +11,6 @@ import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
 import ru.yandex.practicum.telemetry.collector.dto.sensor.SensorEvent;
 import ru.yandex.practicum.telemetry.collector.serializer.AvroSerializer;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -27,36 +23,26 @@ public class KafkaProducerService {
         try {
             HubEventAvro avroEvent = avroSerializer.convertToAvro(event);
 
-            log.debug("Sending hub event to Kafka: topic={}, hubId={}, type={}",
+            log.info("Sending hub event to Kafka: topic={}, hubId={}, type={}",
                     KafkaTopics.HUBS_TOPIC, event.getHubId(), event.getType());
 
-            // Синхронная отправка с таймаутом для тестов
-            var future = kafkaTemplate.send(KafkaTopics.HUBS_TOPIC, event.getHubId(), avroEvent);
-
-            // Ждем отправки (таймаут 5 секунд)
-            var result = future.get(5, TimeUnit.SECONDS);
-
-            log.debug("Hub event sent successfully: hubId={}, partition={}, offset={}",
-                    event.getHubId(),
-                    result.getRecordMetadata().partition(),
-                    result.getRecordMetadata().offset());
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted while sending hub event: hubId={}", event.getHubId(), e);
-            throw new RuntimeException("Interrupted while sending hub event", e);
-
-        } catch (ExecutionException e) {
-            log.error("Failed to send hub event: hubId={}", event.getHubId(), e.getCause());
-            throw new RuntimeException("Failed to send hub event: " + e.getCause().getMessage(), e.getCause());
-
-        } catch (TimeoutException e) {
-            log.error("Timeout while sending hub event: hubId={}", event.getHubId(), e);
-            throw new RuntimeException("Timeout while sending hub event", e);
+            // Асинхронная отправка (не блокируем поток)
+            kafkaTemplate.send(KafkaTopics.HUBS_TOPIC, event.getHubId(), avroEvent)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            log.debug("Hub event sent successfully: hubId={}, partition={}, offset={}",
+                                    event.getHubId(),
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            log.error("Failed to send hub event: hubId={}", event.getHubId(), ex);
+                            // Не бросаем исключение здесь, чтобы не прерывать основной поток
+                        }
+                    });
 
         } catch (Exception e) {
-            log.error("Error sending hub event to Kafka: hubId={}", event.getHubId(), e);
-            throw new RuntimeException("Failed to send hub event", e);
+            log.error("Error converting or sending hub event: hubId={}", event.getHubId(), e);
+            throw new RuntimeException("Failed to process hub event: " + e.getMessage(), e);
         }
     }
 
@@ -64,36 +50,26 @@ public class KafkaProducerService {
         try {
             SensorEventAvro avroEvent = avroSerializer.convertToAvro(event);
 
-            log.debug("Sending sensor event to Kafka: topic={}, sensorId={}, type={}",
+            log.info("Sending sensor event to Kafka: topic={}, sensorId={}, type={}",
                     KafkaTopics.SENSORS_TOPIC, event.getId(), event.getType());
 
-            // Синхронная отправка с таймаутом для тестов
-            var future = kafkaTemplate.send(KafkaTopics.SENSORS_TOPIC, event.getId(), avroEvent);
-
-            // Ждем отправки (таймаут 5 секунд)
-            var result = future.get(5, TimeUnit.SECONDS);
-
-            log.debug("Sensor event sent successfully: sensorId={}, partition={}, offset={}",
-                    event.getId(),
-                    result.getRecordMetadata().partition(),
-                    result.getRecordMetadata().offset());
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted while sending sensor event: sensorId={}", event.getId(), e);
-            throw new RuntimeException("Interrupted while sending sensor event", e);
-
-        } catch (ExecutionException e) {
-            log.error("Failed to send sensor event: sensorId={}", event.getId(), e.getCause());
-            throw new RuntimeException("Failed to send sensor event: " + e.getCause().getMessage(), e.getCause());
-
-        } catch (TimeoutException e) {
-            log.error("Timeout while sending sensor event: sensorId={}", event.getId(), e);
-            throw new RuntimeException("Timeout while sending sensor event", e);
+            // Асинхронная отправка (не блокируем поток)
+            kafkaTemplate.send(KafkaTopics.SENSORS_TOPIC, event.getId(), avroEvent)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            log.debug("Sensor event sent successfully: sensorId={}, partition={}, offset={}",
+                                    event.getId(),
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            log.error("Failed to send sensor event: sensorId={}", event.getId(), ex);
+                            // Не бросаем исключение здесь, чтобы не прерывать основной поток
+                        }
+                    });
 
         } catch (Exception e) {
-            log.error("Error sending sensor event to Kafka: sensorId={}", event.getId(), e);
-            throw new RuntimeException("Failed to send sensor event", e);
+            log.error("Error converting or sending sensor event: sensorId={}", event.getId(), e);
+            throw new RuntimeException("Failed to process sensor event: " + e.getMessage(), e);
         }
     }
 }

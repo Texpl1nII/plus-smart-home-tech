@@ -1,17 +1,19 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
 @Setter
 @ToString(callSuper = true)
 @NoArgsConstructor
-@AllArgsConstructor
 public class MotionSensorEvent extends SensorEvent {
 
-    private int linkQuality;
-    private boolean motion;
-    private int voltage;
+    @JsonProperty("link_quality")
+    private Integer linkQuality;
+
+    private Boolean motion;
+    private Integer voltage;
 
     @Override
     public SensorEventType getType() {
