@@ -3,7 +3,6 @@ package ru.yandex.practicum.telemetry.collector.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
@@ -11,8 +10,6 @@ import ru.yandex.practicum.telemetry.collector.config.KafkaTopics;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
 import ru.yandex.practicum.telemetry.collector.dto.sensor.SensorEvent;
 import ru.yandex.practicum.telemetry.collector.serializer.AvroSerializer;
-
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -22,49 +19,55 @@ public class KafkaProducerService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final AvroSerializer avroSerializer;
 
-    public void sendSensorEvent(SensorEvent event) {
+    public void sendHubEvent(HubEvent event) {
         try {
-            // Конвертируем DTO в Avro
-            SensorEventAvro avroEvent = avroSerializer.convertToAvro(event);
+            // Конвертируем в Avro
+            HubEventAvro avroEvent = avroSerializer.convertToAvro(event);
 
-            // Отправляем в Kafka
-            CompletableFuture<SendResult<String, Object>> future =
-                    kafkaTemplate.send(KafkaTopics.SENSORS_TOPIC, event.getId(), avroEvent);
+            log.info("Sending hub event to Kafka: topic={}, hubId={}",
+                    KafkaTopics.HUBS_TOPIC, event.getHubId());
 
-            future.whenComplete((result, ex) -> {
-                if (ex == null) {
-                    log.debug("Sensor event sent successfully: {}", event.getId());
-                } else {
-                    log.error("Failed to send sensor event: {}", event.getId(), ex);
-                }
-            });
+            kafkaTemplate.send(KafkaTopics.HUBS_TOPIC, event.getHubId(), avroEvent)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            log.info("Hub event sent successfully: hubId={}, partition={}, offset={}",
+                                    event.getHubId(),
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            log.error("Failed to send hub event: hubId={}", event.getHubId(), ex);
+                        }
+                    });
 
         } catch (Exception e) {
-            log.error("Error processing sensor event: {}", event.getId(), e);
-            throw new RuntimeException("Failed to process sensor event", e);
+            log.error("Error sending hub event to Kafka: {}", event.getHubId(), e);
+            throw new RuntimeException("Failed to send hub event", e);
         }
     }
 
-    public void sendHubEvent(HubEvent event) {
+    public void sendSensorEvent(SensorEvent event) {
         try {
-            // Конвертируем DTO в Avro
-            HubEventAvro avroEvent = avroSerializer.convertToAvro(event);
+            // Конвертируем в Avro
+            SensorEventAvro avroEvent = avroSerializer.convertToAvro(event);
 
-            // Отправляем в Kafka
-            CompletableFuture<SendResult<String, Object>> future =
-                    kafkaTemplate.send(KafkaTopics.HUBS_TOPIC, event.getHubId(), avroEvent);
+            log.info("Sending sensor event to Kafka: topic={}, sensorId={}",
+                    KafkaTopics.SENSORS_TOPIC, event.getId());
 
-            future.whenComplete((result, ex) -> {
-                if (ex == null) {
-                    log.debug("Hub event sent successfully: {}", event.getHubId());
-                } else {
-                    log.error("Failed to send hub event: {}", event.getHubId(), ex);
-                }
-            });
+            kafkaTemplate.send(KafkaTopics.SENSORS_TOPIC, event.getId(), avroEvent)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            log.info("Sensor event sent successfully: sensorId={}, partition={}, offset={}",
+                                    event.getId(),
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            log.error("Failed to send sensor event: sensorId={}", event.getId(), ex);
+                        }
+                    });
 
         } catch (Exception e) {
-            log.error("Error processing hub event: {}", event.getHubId(), e);
-            throw new RuntimeException("Failed to process hub event", e);
+            log.error("Error sending sensor event to Kafka: {}", event.getId(), e);
+            throw new RuntimeException("Failed to send sensor event", e);
         }
     }
 }

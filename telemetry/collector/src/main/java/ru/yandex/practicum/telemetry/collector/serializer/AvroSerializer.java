@@ -14,24 +14,25 @@ import java.util.stream.Collectors;
 public class AvroSerializer {
 
     public SensorEventAvro convertToAvro(SensorEvent event) {
-        SensorEventAvro avro = new SensorEventAvro();
-        avro.setId(event.getId());
-        avro.setHubId(event.getHubId());
-        avro.setTimestamp(event.getTimestamp().toEpochMilli());
+        // Используем Builder, а не конструктор!
+        SensorEventAvro.Builder builder = SensorEventAvro.newBuilder()
+                .setId(event.getId())
+                .setHubId(event.getHubId())  // camelCase!
+                .setTimestamp(event.getTimestamp().toEpochMilli());
 
         if (event instanceof LightSensorEvent lightEvent) {
             LightSensorAvro lightAvro = LightSensorAvro.newBuilder()
                     .setLinkQuality(lightEvent.getLinkQuality())
                     .setLuminosity(lightEvent.getLuminosity())
                     .build();
-            avro.setPayload(lightAvro);
+            builder.setPayload(lightAvro);
 
         } else if (event instanceof TemperatureSensorEvent tempEvent) {
             TemperatureSensorAvro tempAvro = TemperatureSensorAvro.newBuilder()
                     .setTemperatureC(tempEvent.getTemperatureC())
                     .setTemperatureF(tempEvent.getTemperatureF())
                     .build();
-            avro.setPayload(tempAvro);
+            builder.setPayload(tempAvro);
 
         } else if (event instanceof ClimateSensorEvent climateEvent) {
             ClimateSensorAvro climateAvro = ClimateSensorAvro.newBuilder()
@@ -39,7 +40,7 @@ public class AvroSerializer {
                     .setHumidity(climateEvent.getHumidity())
                     .setCo2Level(climateEvent.getCo2Level())
                     .build();
-            avro.setPayload(climateAvro);
+            builder.setPayload(climateAvro);
 
         } else if (event instanceof MotionSensorEvent motionEvent) {
             MotionSensorAvro motionAvro = MotionSensorAvro.newBuilder()
@@ -47,37 +48,38 @@ public class AvroSerializer {
                     .setMotion(motionEvent.isMotion())
                     .setVoltage(motionEvent.getVoltage())
                     .build();
-            avro.setPayload(motionAvro);
+            builder.setPayload(motionAvro);
 
         } else if (event instanceof SwitchSensorEvent switchEvent) {
             SwitchSensorAvro switchAvro = SwitchSensorAvro.newBuilder()
                     .setState(switchEvent.isState())
                     .build();
-            avro.setPayload(switchAvro);
+            builder.setPayload(switchAvro);
         } else {
             throw new IllegalArgumentException("Unknown sensor event type: " + event.getClass());
         }
 
-        return avro;
+        return builder.build();  // Не забудь build()!
     }
 
     public HubEventAvro convertToAvro(HubEvent event) {
-        HubEventAvro avro = new HubEventAvro();
-        avro.setHubId(event.getHubId());
-        avro.setTimestamp(event.getTimestamp().toEpochMilli());
+        // Используем Builder!
+        HubEventAvro.Builder builder = HubEventAvro.newBuilder()
+                .setHubId(event.getHubId())  // camelCase, хотя в схеме hub_id!
+                .setTimestamp(event.getTimestamp().toEpochMilli());
 
         if (event instanceof DeviceAddedEvent deviceAdded) {
             DeviceAddedEventAvro deviceAvro = DeviceAddedEventAvro.newBuilder()
                     .setId(deviceAdded.getId())
-                    .setType(DeviceTypeAvro.valueOf(deviceAdded.getDeviceType().name())) // ← ИСПРАВЛЕНО
+                    .setType(DeviceTypeAvro.valueOf(deviceAdded.getDeviceType().name()))
                     .build();
-            avro.setPayload(deviceAvro);
+            builder.setPayload(deviceAvro);
 
         } else if (event instanceof DeviceRemovedEvent deviceRemoved) {
             DeviceRemovedEventAvro deviceAvro = DeviceRemovedEventAvro.newBuilder()
                     .setId(deviceRemoved.getId())
                     .build();
-            avro.setPayload(deviceAvro);
+            builder.setPayload(deviceAvro);
 
         } else if (event instanceof ScenarioAddedEvent scenarioAdded) {
             List<ScenarioConditionAvro> conditions = scenarioAdded.getConditions().stream()
@@ -93,19 +95,19 @@ public class AvroSerializer {
                     .setConditions(conditions)
                     .setActions(actions)
                     .build();
-            avro.setPayload(scenarioAvro);
+            builder.setPayload(scenarioAvro);
 
         } else if (event instanceof ScenarioRemovedEvent scenarioRemoved) {
             ScenarioRemovedEventAvro scenarioAvro = ScenarioRemovedEventAvro.newBuilder()
                     .setName(scenarioRemoved.getName())
                     .build();
-            avro.setPayload(scenarioAvro);
+            builder.setPayload(scenarioAvro);
 
         } else {
             throw new IllegalArgumentException("Unknown hub event type: " + event.getClass());
         }
 
-        return avro;
+        return builder.build();  // Не забудь build()!
     }
 
     private ScenarioConditionAvro convertConditionToAvro(ScenarioCondition condition) {
