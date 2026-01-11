@@ -17,13 +17,21 @@ public class DebugController {
     @PostMapping("/sensors/raw")
     public String debugSensorRaw(@RequestBody String rawJson) {
         log.info("=== RAW SENSOR JSON DEBUG ===");
-        log.info("Content-Type should be: application/json");
-        log.info("Body length: {} chars", rawJson.length());
         log.info("Body content:\n{}", rawJson);
 
         try {
             JsonNode node = objectMapper.readTree(rawJson);
             log.info("Parsed JSON structure:\n{}", node.toPrettyString());
+
+            if (node.has("id")) {
+                log.info("Field 'id': {}", node.get("id"));
+            }
+            if (node.has("hub_id")) {
+                log.info("Field 'hub_id': {}", node.get("hub_id"));
+            }
+            if (node.has("type")) {
+                log.info("Field 'type': {}", node.get("type"));
+            }
         } catch (Exception e) {
             log.error("Failed to parse JSON: {}", e.getMessage(), e);
         }
@@ -35,7 +43,6 @@ public class DebugController {
     @PostMapping("/hubs/raw")
     public String debugHubRaw(@RequestBody String rawJson) {
         log.info("=== RAW HUB JSON DEBUG ===");
-        log.info("Body length: {} chars", rawJson.length());
         log.info("Body content:\n{}", rawJson);
 
         try {
@@ -44,13 +51,16 @@ public class DebugController {
 
             // Проверяем поля
             if (node.has("hub_id")) {
-                log.info("Field 'hub_id' found: {}", node.get("hub_id"));
+                log.info("Field 'hub_id': {}", node.get("hub_id"));
             }
             if (node.has("type")) {
-                log.info("Field 'type' found: {}", node.get("type"));
+                log.info("Field 'type': {}", node.get("type"));
             }
-            if (node.has("payload")) {
-                log.info("Field 'payload' found: {}", node.get("payload"));
+            if (node.has("device_type")) {
+                log.info("Field 'device_type': {}", node.get("device_type"));
+            }
+            if (node.has("id")) {
+                log.info("Field 'id': {}", node.get("id"));
             }
         } catch (Exception e) {
             log.error("Failed to parse JSON: {}", e.getMessage(), e);
