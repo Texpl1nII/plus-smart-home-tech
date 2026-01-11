@@ -8,7 +8,6 @@ import lombok.*;
 @Setter
 @ToString(callSuper = true)
 @NoArgsConstructor
-@AllArgsConstructor
 public class LightSensorEvent extends SensorEvent {
 
     @Min(0)

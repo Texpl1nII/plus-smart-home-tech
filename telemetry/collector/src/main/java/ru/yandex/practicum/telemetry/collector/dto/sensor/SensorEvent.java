@@ -28,7 +28,6 @@ import java.time.Instant;
 @Setter
 @ToString
 @NoArgsConstructor
-@AllArgsConstructor
 public abstract class SensorEvent {
 
     @NotBlank

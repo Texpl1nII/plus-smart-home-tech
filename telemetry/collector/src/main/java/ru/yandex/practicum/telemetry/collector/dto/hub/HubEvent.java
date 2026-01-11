@@ -12,7 +12,7 @@ import java.time.Instant;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+        include = JsonTypeInfo.As.PROPERTY,
         property = "type",
         defaultImpl = HubEventType.class,
         visible = true
@@ -40,8 +40,6 @@ public abstract class HubEvent {
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private HubEventType type;
-
-    private Object payload;
 
     public HubEventType getType() {
         return type;
