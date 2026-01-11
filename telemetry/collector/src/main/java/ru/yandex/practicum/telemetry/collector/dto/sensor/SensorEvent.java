@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -13,7 +14,8 @@ import java.time.Instant;
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.EXISTING_PROPERTY,
         property = "type",
-        defaultImpl = SensorEventType.class
+        defaultImpl = SensorEventType.class,
+        visible = true
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = LightSensorEvent.class, name = "LIGHT_SENSOR_EVENT"),
@@ -38,6 +40,16 @@ public abstract class SensorEvent {
 
     private Instant timestamp = Instant.now();
 
+    @JsonProperty("type")
     @NotNull
-    public abstract SensorEventType getType();
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private SensorEventType type;
+
+    public SensorEventType getType() {
+        return type;
+    }
+
+    protected void setType(SensorEventType type) {
+        this.type = type;
+    }
 }

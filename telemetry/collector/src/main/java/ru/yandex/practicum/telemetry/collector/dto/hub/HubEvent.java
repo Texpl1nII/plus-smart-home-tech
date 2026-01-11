@@ -14,13 +14,14 @@ import java.time.Instant;
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.EXISTING_PROPERTY,
         property = "type",
-        defaultImpl = HubEventType.class
+        defaultImpl = HubEventType.class,
+        visible = true
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = DeviceAddedEvent.class, name = "DEVICE_ADDED_EVENT"),
-        @JsonSubTypes.Type(value = DeviceRemovedEvent.class, name = "DEVICE_REMOVED_EVENT"),
-        @JsonSubTypes.Type(value = ScenarioAddedEvent.class, name = "SCENARIO_ADDED_EVENT"),
-        @JsonSubTypes.Type(value = ScenarioRemovedEvent.class, name = "SCENARIO_REMOVED_EVENT")
+        @JsonSubTypes.Type(value = DeviceAddedEvent.class, name = "DEVICE_ADDED"),
+        @JsonSubTypes.Type(value = DeviceRemovedEvent.class, name = "DEVICE_REMOVED"),
+        @JsonSubTypes.Type(value = ScenarioAddedEvent.class, name = "SCENARIO_ADDED"),
+        @JsonSubTypes.Type(value = ScenarioRemovedEvent.class, name = "SCENARIO_REMOVED")
 })
 @Getter
 @Setter
@@ -35,7 +36,16 @@ public abstract class HubEvent {
 
     private Instant timestamp = Instant.now();
 
+    @JsonProperty("type")
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING)
-    public abstract HubEventType getType();
+    private HubEventType type;
+
+    public HubEventType getType() {
+        return type;
+    }
+
+    protected void setType(HubEventType type) {
+        this.type = type;
+    }
 }
