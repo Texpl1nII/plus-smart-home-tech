@@ -1,6 +1,5 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
@@ -9,11 +8,8 @@ import lombok.*;
 @NoArgsConstructor
 public class TemperatureSensorEvent extends SensorEvent {
 
-    @JsonProperty("temperature_c")
-    private Integer temperatureC;
-
-    @JsonProperty("temperature_f")
-    private Integer temperatureF;
+    private Integer temperatureC;  // camelCase!
+    private Integer temperatureF;  // camelCase!
 
     @Override
     public SensorEventType getType() {

@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.dto.hub;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -12,15 +13,26 @@ import java.time.Instant;
 public class DeviceAddedEvent extends HubEvent {
 
     private String id;
+    private DeviceType deviceType;  // camelCase!
 
-    @JsonProperty("device_type")
-    private DeviceType deviceType;
+    @JsonCreator
+    public static DeviceAddedEvent create(
+            @JsonProperty("hubId") String hubId,
+            @JsonProperty("id") String id,
+            @JsonProperty("deviceType") String deviceTypeStr,
+            @JsonProperty("timestamp") Instant timestamp) {
 
-    public DeviceAddedEvent(String hubId, String id, DeviceType deviceType) {
-        this.setHubId(hubId);
-        this.id = id;
-        this.deviceType = deviceType;
-        this.setType(HubEventType.DEVICE_ADDED);
-        this.setTimestamp(Instant.now());
+        DeviceAddedEvent event = new DeviceAddedEvent();
+        event.setHubId(hubId);
+        event.setId(id);
+        event.setDeviceType(deviceTypeStr != null ? DeviceType.fromJson(deviceTypeStr) : null);
+        event.setType(HubEventType.DEVICE_ADDED);
+        event.setTimestamp(timestamp != null ? timestamp : Instant.now());
+        return event;
+    }
+
+    @Override
+    public HubEventType getType() {
+        return HubEventType.DEVICE_ADDED;
     }
 }

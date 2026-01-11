@@ -16,13 +16,15 @@ public enum DeviceType {
         this.jsonValue = jsonValue;
     }
 
-    @JsonValue  // При сериализации в JSON
+    @JsonValue
     public String getJsonValue() {
         return jsonValue;
     }
 
-    @JsonCreator  // При десериализации из JSON
+    @JsonCreator
     public static DeviceType fromJson(String value) {
+        if (value == null) return null;
+
         for (DeviceType type : values()) {
             if (type.jsonValue.equals(value)) {
                 return type;

@@ -1,6 +1,5 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
@@ -9,9 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 public class MotionSensorEvent extends SensorEvent {
 
-    @JsonProperty("link_quality")
-    private Integer linkQuality;
-
+    private Integer linkQuality;  // camelCase!
     private Boolean motion;
     private Integer voltage;
 
