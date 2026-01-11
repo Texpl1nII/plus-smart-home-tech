@@ -19,7 +19,6 @@ public class AvroSerializer {
         avro.setHubId(event.getHubId());
         avro.setTimestamp(event.getTimestamp().toEpochMilli());
 
-        // Устанавливаем payload в зависимости от типа события
         if (event instanceof LightSensorEvent lightEvent) {
             LightSensorAvro lightAvro = LightSensorAvro.newBuilder()
                     .setLinkQuality(lightEvent.getLinkQuality())
@@ -67,11 +66,10 @@ public class AvroSerializer {
         avro.setHubId(event.getHubId());
         avro.setTimestamp(event.getTimestamp().toEpochMilli());
 
-        // Устанавливаем payload в зависимости от типа события
         if (event instanceof DeviceAddedEvent deviceAdded) {
             DeviceAddedEventAvro deviceAvro = DeviceAddedEventAvro.newBuilder()
                     .setId(deviceAdded.getId())
-                    .setType(DeviceTypeAvro.valueOf(deviceAdded.getType().name()))
+                    .setType(DeviceTypeAvro.valueOf(deviceAdded.getDeviceType().name())) // ← ИСПРАВЛЕНО
                     .build();
             avro.setPayload(deviceAvro);
 
@@ -116,7 +114,6 @@ public class AvroSerializer {
                 .setType(ConditionTypeAvro.valueOf(condition.getType().name()))
                 .setOperation(ConditionOperationAvro.valueOf(condition.getOperation().name()));
 
-        // Обрабатываем value (может быть Integer, Boolean или null)
         if (condition.getValue() == null) {
             builder.setValue(null);
         } else if (condition.getValue() instanceof Integer) {
@@ -135,7 +132,6 @@ public class AvroSerializer {
                 .setSensorId(action.getSensorId())
                 .setType(ActionTypeAvro.valueOf(action.getType().name()));
 
-        // value может быть null
         if (action.getValue() != null) {
             builder.setValue(action.getValue());
         } else {

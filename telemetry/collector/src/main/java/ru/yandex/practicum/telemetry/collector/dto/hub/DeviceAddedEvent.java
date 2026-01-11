@@ -7,7 +7,6 @@ import lombok.*;
 @Setter
 @ToString(callSuper = true)
 @NoArgsConstructor
-@AllArgsConstructor
 public class DeviceAddedEvent extends HubEvent {
 
     private String id;
@@ -20,5 +19,13 @@ public class DeviceAddedEvent extends HubEvent {
         this.id = id;
         this.deviceType = deviceType;
         setType(HubEventType.DEVICE_ADDED);
+    }
+
+    public DeviceAddedEvent(String hubId, String id, DeviceType deviceType, java.time.Instant timestamp) {
+        setHubId(hubId);
+        this.id = id;
+        this.deviceType = deviceType;
+        setType(HubEventType.DEVICE_ADDED);
+        setTimestamp(timestamp != null ? timestamp : java.time.Instant.now());
     }
 }
