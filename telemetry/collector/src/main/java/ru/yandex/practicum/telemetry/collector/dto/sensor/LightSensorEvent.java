@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.*;
@@ -12,11 +13,12 @@ public class LightSensorEvent extends SensorEvent {
 
     @Min(0)
     @Max(100)
-    private int linkQuality;
+    @JsonProperty("link_quality")
+    private Integer linkQuality;  // Изменил на Integer для nullable
 
     @Min(0)
-    @Max(100)
-    private int luminosity;
+    @JsonProperty("luminosity")
+    private Integer luminosity;  // Убрал @Max(100) и изменил на Integer
 
     @Override
     public SensorEventType getType() {

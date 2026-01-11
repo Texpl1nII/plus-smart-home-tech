@@ -1,6 +1,7 @@
 package ru.yandex.practicum.telemetry.collector.serializer;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 import ru.yandex.practicum.telemetry.collector.dto.hub.*;
@@ -9,15 +10,17 @@ import ru.yandex.practicum.telemetry.collector.dto.sensor.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AvroSerializer {
 
     public SensorEventAvro convertToAvro(SensorEvent event) {
-        // Используем Builder, а не конструктор!
+        log.debug("Converting sensor event to Avro: {}", event.getClass().getSimpleName());
+
         SensorEventAvro.Builder builder = SensorEventAvro.newBuilder()
                 .setId(event.getId())
-                .setHubId(event.getHubId())  // camelCase!
+                .setHubId(event.getHubId())
                 .setTimestamp(event.getTimestamp().toEpochMilli());
 
         if (event instanceof LightSensorEvent lightEvent) {
@@ -59,13 +62,14 @@ public class AvroSerializer {
             throw new IllegalArgumentException("Unknown sensor event type: " + event.getClass());
         }
 
-        return builder.build();  // Не забудь build()!
+        return builder.build();
     }
 
     public HubEventAvro convertToAvro(HubEvent event) {
-        // Используем Builder!
+        log.debug("Converting hub event to Avro: {}", event.getClass().getSimpleName());
+
         HubEventAvro.Builder builder = HubEventAvro.newBuilder()
-                .setHubId(event.getHubId())  // camelCase, хотя в схеме hub_id!
+                .setHubId(event.getHubId())
                 .setTimestamp(event.getTimestamp().toEpochMilli());
 
         if (event instanceof DeviceAddedEvent deviceAdded) {
@@ -82,13 +86,17 @@ public class AvroSerializer {
             builder.setPayload(deviceAvro);
 
         } else if (event instanceof ScenarioAddedEvent scenarioAdded) {
-            List<ScenarioConditionAvro> conditions = scenarioAdded.getConditions().stream()
-                    .map(this::convertConditionToAvro)
-                    .collect(Collectors.toList());
+            List<ScenarioConditionAvro> conditions = scenarioAdded.getConditions() != null ?
+                    scenarioAdded.getConditions().stream()
+                            .map(this::convertConditionToAvro)
+                            .collect(Collectors.toList()) :
+                    List.of();
 
-            List<DeviceActionAvro> actions = scenarioAdded.getActions().stream()
-                    .map(this::convertActionToAvro)
-                    .collect(Collectors.toList());
+            List<DeviceActionAvro> actions = scenarioAdded.getActions() != null ?
+                    scenarioAdded.getActions().stream()
+                            .map(this::convertActionToAvro)
+                            .collect(Collectors.toList()) :
+                    List.of();
 
             ScenarioAddedEventAvro scenarioAvro = ScenarioAddedEventAvro.newBuilder()
                     .setName(scenarioAdded.getName())
@@ -107,7 +115,7 @@ public class AvroSerializer {
             throw new IllegalArgumentException("Unknown hub event type: " + event.getClass());
         }
 
-        return builder.build();  // Не забудь build()!
+        return builder.build();
     }
 
     private ScenarioConditionAvro convertConditionToAvro(ScenarioCondition condition) {

@@ -5,9 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
-import ru.yandex.practicum.telemetry.collector.serializer.AvroSerializer;
 import ru.yandex.practicum.telemetry.collector.service.KafkaProducerService;
 
 import java.util.HashMap;
@@ -15,23 +13,17 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/events")
 @RequiredArgsConstructor
 public class HubController {
 
     private final KafkaProducerService kafkaProducerService;
-    private final AvroSerializer avroSerializer;
 
     @PostMapping("/hubs")
     public ResponseEntity<?> collectHubEvent(@Valid @RequestBody HubEvent event) {
         log.info("Received hub event: {}", event);
 
         try {
-            // Конвертируем в Avro
-            HubEventAvro avroEvent = avroSerializer.convertToAvro(event);
-
-            // Отправляем в Kafka
-            kafkaProducerService.sendHubEvent(event);  // Изменил вызов!
+            kafkaProducerService.sendHubEvent(event);
 
             Map<String, String> response = new HashMap<>();
             response.put("status", "success");
