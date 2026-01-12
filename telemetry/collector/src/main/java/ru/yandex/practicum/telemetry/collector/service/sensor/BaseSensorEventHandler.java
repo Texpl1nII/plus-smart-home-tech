@@ -25,25 +25,32 @@ public abstract class BaseSensorEventHandler<T extends SpecificRecordBase> imple
             throw new IllegalArgumentException("Неизвестный тип события: " + event.getType());
         }
 
-        // преобразование события в Avro запись
-        T payload = mapToAvro(event);
+        try {
+            // преобразование события в Avro запись
+            T payload = mapToAvro(event);
 
-        SensorEventAvro eventAvro = SensorEventAvro.newBuilder()
-                .setHubId(event.getHubId())
-                .setId(event.getId())
-                .setTimestamp(event.getTimestamp())  // УБРАТЬ .toEpochMilli()!
-                .setPayload(payload)
-                .build();
+            SensorEventAvro eventAvro = SensorEventAvro.newBuilder()
+                    .setHubId(event.getHubId())
+                    .setId(event.getId())
+                    .setTimestamp(event.getTimestamp())  // Instant!
+                    .setPayload(payload)
+                    .build();
 
-        ProducerRecord<String, SpecificRecordBase> record = new ProducerRecord<>(
-                topic,
-                null,
-                event.getTimestamp().toEpochMilli(),  // здесь оставить для Kafka timestamp
-                eventAvro.getHubId(),
-                eventAvro);
+            ProducerRecord<String, SpecificRecordBase> record = new ProducerRecord<>(
+                    topic,
+                    null,
+                    event.getTimestamp().toEpochMilli(),  // здесь оставить для Kafka timestamp
+                    eventAvro.getHubId(),
+                    eventAvro);
 
-        producer.getProducer().send(record);
+            producer.getProducer().send(record);
 
-        log.info("Отправили в Kafka: {}", record);
+            log.info("Отправили в Kafka: hubId={}, sensorId={}, timestamp={}, type={}",
+                    event.getHubId(), event.getId(), event.getTimestamp(), event.getType());
+        } catch (Exception e) {
+            log.error("Error handling sensor event: hubId={}, sensorId={}, type={}",
+                    event.getHubId(), event.getId(), event.getType(), e);
+            throw e;
+        }
     }
 }
