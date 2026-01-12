@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter
@@ -8,8 +9,11 @@ import lombok.*;
 @NoArgsConstructor
 public class TemperatureSensorEvent extends SensorEvent {
 
-    private int temperatureC;  // примитив int
-    private int temperatureF;  // примитив int
+    @NotNull
+    private int temperatureC;
+
+    @NotNull
+    private int temperatureF;
 
     @Override
     public SensorEventType getType() {

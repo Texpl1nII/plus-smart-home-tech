@@ -2,15 +2,22 @@ package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
 import lombok.*;
 
+import jakarta.validation.constraints.NotNull;
+
 @Getter
 @Setter
 @ToString(callSuper = true)
 @NoArgsConstructor
 public class ClimateSensorEvent extends SensorEvent {
 
-    private int temperatureC;  // примитив int
-    private int humidity;      // примитив int
-    private int co2Level;      // примитив int
+    @NotNull
+    private int temperatureC;
+
+    @NotNull
+    private int humidity;
+
+    @NotNull
+    private int co2Level;
 
     @Override
     public SensorEventType getType() {
