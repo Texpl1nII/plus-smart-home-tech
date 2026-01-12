@@ -2,6 +2,7 @@ package ru.yandex.practicum.telemetry.collector.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEventType;
@@ -44,14 +45,30 @@ public class EventController {
     }
 
     @PostMapping("/hubs")
-    public void collectHubEvent(@Valid @RequestBody HubEvent request) {
-        log.info("Received hub event: type={}, hubId={}",
-                request.getType(), request.getHubId());
+    public ResponseEntity<?> collectHubEvent(@Valid @RequestBody HubEvent request) {
+        log.info("=== RECEIVED HUB EVENT ===");
+        log.info("Type: {}", request.getType());
+        log.info("HubId: {}", request.getHubId());
+        log.info("Timestamp: {}", request.getTimestamp());
+        log.info("Full request: {}", request);
+        log.info("=== END HUB EVENT ===");
 
-        if (hubEventHandlers.containsKey(request.getType())) {
-            hubEventHandlers.get(request.getType()).handle(request);
-        } else {
-            throw new IllegalArgumentException("Не найден обработчик для события " + request.getType());
+        try {
+            if (hubEventHandlers.containsKey(request.getType())) {
+                hubEventHandlers.get(request.getType()).handle(request);
+                return ResponseEntity.ok().build();
+            } else {
+                log.error("No handler found for event type: {}", request.getType());
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Не найден обработчик для события " + request.getType()));
+            }
+        } catch (Exception e) {
+            log.error("Error processing hub event: type={}, hubId={}",
+                    request.getType(), request.getHubId(), e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Internal server error",
+                            "message", e.getMessage(),
+                            "exception", e.getClass().getName()));
         }
     }
 }
