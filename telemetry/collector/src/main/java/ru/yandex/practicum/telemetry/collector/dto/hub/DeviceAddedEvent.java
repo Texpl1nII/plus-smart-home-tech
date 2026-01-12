@@ -3,8 +3,6 @@ package ru.yandex.practicum.telemetry.collector.dto.hub;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
-import ru.yandex.practicum.telemetry.collector.dto.hub.HubEventType;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
