@@ -1,6 +1,5 @@
 package ru.yandex.practicum.telemetry.collector.dto.hub;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.List;
@@ -25,6 +24,10 @@ public class ScenarioAddedEvent extends HubEvent {
         this.name = name;
         this.conditions = conditions;
         this.actions = actions;
-        setType(HubEventType.SCENARIO_ADDED);
+    }
+
+    @Override
+    public HubEventType getType() {
+        return HubEventType.SCENARIO_ADDED;
     }
 }
