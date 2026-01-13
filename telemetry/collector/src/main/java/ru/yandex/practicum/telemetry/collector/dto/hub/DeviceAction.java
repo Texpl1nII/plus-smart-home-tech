@@ -1,18 +1,17 @@
 package ru.yandex.practicum.telemetry.collector.dto.hub;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+import jakarta.validation.constraints.NotBlank;
 
 @Getter
 @Setter
-@ToString
-@NoArgsConstructor
-@AllArgsConstructor
+@ToString(callSuper = true)
 public class DeviceAction {
-    @JsonProperty("sensor_id")
+    @NotBlank
     private String sensorId;
-
     private ActionType type;
-
     private int value;
 }

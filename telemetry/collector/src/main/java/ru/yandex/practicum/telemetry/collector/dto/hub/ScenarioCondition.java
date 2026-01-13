@@ -1,24 +1,18 @@
 package ru.yandex.practicum.telemetry.collector.dto.hub;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
 
 @Getter
 @Setter
-@ToString
-@NoArgsConstructor
-@AllArgsConstructor
+@ToString(callSuper = true)
 public class ScenarioCondition {
-    @NotBlank(message = "sensor_id не может быть пустым")
-    @JsonProperty("sensor_id")
+    @NotBlank
     private String sensorId;
-
-    @NotNull(message = "type не может быть null")
     private ConditionType type;
-
-    @NotNull(message = "operation не может быть null")
-
+    private Operation operation;
     private int value;
 }
