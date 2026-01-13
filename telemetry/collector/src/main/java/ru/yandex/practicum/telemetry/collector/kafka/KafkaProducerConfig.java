@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.collector.config;
+package ru.yandex.practicum.telemetry.collector.kafka;
 
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -8,8 +8,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import ru.yandex.practicum.telemetry.collector.kafka.GeneralAvroSerializer;
-import ru.yandex.practicum.telemetry.collector.kafka.KafkaClientProducer;
 
 import java.time.Duration;
 import java.util.Properties;
