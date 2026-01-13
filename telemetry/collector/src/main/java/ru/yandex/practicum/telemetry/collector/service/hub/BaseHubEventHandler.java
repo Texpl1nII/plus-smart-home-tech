@@ -25,30 +25,24 @@ public abstract class BaseHubEventHandler<T extends SpecificRecordBase> implemen
             throw new IllegalArgumentException("Неизвестный тип события: " + event.getType());
         }
 
-        try {
-            T payload = mapToAvro(event);
+        T payload = mapToAvro(event);
 
-            HubEventAvro eventAvro = HubEventAvro.newBuilder()
-                    .setHubId(event.getHubId())
-                    .setTimestamp(event.getTimestamp())  // Instant!
-                    .setPayload(payload)
-                    .build();
+        HubEventAvro eventAvro = HubEventAvro.newBuilder()
+                .setHubId(event.getHubId())
+                .setTimestamp(event.getTimestamp())  // Instant!
+                .setPayload(payload)
+                .build();
 
-            ProducerRecord<String, SpecificRecordBase> record = new ProducerRecord<>(
-                    topic,
-                    null,
-                    event.getTimestamp().toEpochMilli(),  // для Kafka timestamp используем миллисекунды
-                    eventAvro.getHubId(),
-                    eventAvro);
+        ProducerRecord<String, SpecificRecordBase> record = new ProducerRecord<>(
+                topic,
+                null,
+                event.getTimestamp().toEpochMilli(),
+                eventAvro.getHubId(),
+                eventAvro);
 
-            producer.getProducer().send(record);
+        producer.getProducer().send(record);
 
-            log.info("Отправили в Kafka: hubId={}, timestamp={}, type={}",
-                    event.getHubId(), event.getTimestamp(), event.getType());
-        } catch (Exception e) {
-            log.error("Error handling hub event: hubId={}, type={}",
-                    event.getHubId(), event.getType(), e);
-            throw e;
-        }
+        log.info("Отправили в Kafka: hubId={}, type={}",
+                event.getHubId(), event.getType());
     }
 }
