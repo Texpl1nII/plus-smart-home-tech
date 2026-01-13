@@ -26,29 +26,10 @@ public class EventController {
 
     public EventController(List<SensorEventHandler> sensorEventHandlerList,
                            List<HubEventHandler> hubEventHandlerList) {
-        // Используем groupingBy для избежания конфликтов
         this.sensorEventHandlers = sensorEventHandlerList.stream()
-                .collect(Collectors.toMap(
-                        SensorEventHandler::getMessageType,
-                        Function.identity(),
-                        (existing, replacement) -> {
-                            log.warn("Duplicate sensor event handler for type: {}. Using existing one.",
-                                    existing.getMessageType());
-                            return existing;
-                        }));
-
+                .collect(Collectors.toMap(SensorEventHandler::getMessageType, Function.identity()));
         this.hubEventHandlers = hubEventHandlerList.stream()
-                .collect(Collectors.toMap(
-                        HubEventHandler::getMessageType,
-                        Function.identity(),
-                        (existing, replacement) -> {
-                            log.warn("Duplicate hub event handler for type: {}. Using existing one.",
-                                    existing.getMessageType());
-                            return existing;
-                        }));
-
-        log.info("Registered sensor event handlers: {}", sensorEventHandlers.keySet());
-        log.info("Registered hub event handlers: {}", hubEventHandlers.keySet());
+                .collect(Collectors.toMap(HubEventHandler::getMessageType, Function.identity()));
     }
 
     @PostMapping("/sensors")
@@ -65,12 +46,7 @@ public class EventController {
 
     @PostMapping("/hubs")
     public ResponseEntity<?> collectHubEvent(@Valid @RequestBody HubEvent request) {
-        log.info("=== RECEIVED HUB EVENT ===");
-        log.info("Type: {}", request.getType());
-        log.info("HubId: {}", request.getHubId());
-        log.info("Timestamp: {}", request.getTimestamp());
-        log.info("Full request: {}", request);
-        log.info("=== END HUB EVENT ===");
+        log.info("Received hub event: type={}, hubId={}", request.getType(), request.getHubId());
 
         try {
             if (hubEventHandlers.containsKey(request.getType())) {
