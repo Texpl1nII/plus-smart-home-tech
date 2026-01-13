@@ -28,7 +28,7 @@ public class ScenarioAddedEventHandler extends BaseHubEventHandler<ScenarioAdded
     private ScenarioConditionAvro mapToConditionAvro(ScenarioCondition scenarioCondition) {
         return ScenarioConditionAvro.newBuilder()
                 .setSensorId(scenarioCondition.getSensorId())
-                .setOperation(ConditionOperationAvro.valueOf(scenarioCondition.getOperation().name()))
+                .setOperation(ConditionOperationAvro.valueOf(scenarioCondition.getType().name()))
                 .setType(ConditionTypeAvro.valueOf(scenarioCondition.getType().name()))
                 .setValue(scenarioCondition.getValue())
                 .build();
