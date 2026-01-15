@@ -17,6 +17,7 @@ public class TemperatureSensorEventHandler extends BaseSensorEventHandler<Temper
     protected TemperatureSensorAvro mapToAvro(SensorEvent event) {
         TemperatureSensorEvent temperatureSensorEvent = (TemperatureSensorEvent) event;
         return TemperatureSensorAvro.newBuilder()
+                // Только специфичные поля, общие поля уже в обертке
                 .setTemperatureC(temperatureSensorEvent.getTemperatureC())
                 .setTemperatureF(temperatureSensorEvent.getTemperatureF())
                 .build();

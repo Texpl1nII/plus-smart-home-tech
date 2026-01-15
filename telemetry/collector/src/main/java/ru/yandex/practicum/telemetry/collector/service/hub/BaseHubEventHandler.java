@@ -29,14 +29,14 @@ public abstract class BaseHubEventHandler<T extends SpecificRecordBase> implemen
 
         HubEventAvro eventAvro = HubEventAvro.newBuilder()
                 .setHubId(event.getHubId())
-                .setTimestamp(event.getTimestamp())  // Instant!
+                .setTimestamp(event.getTimestamp())  // Оставляем как Instant
                 .setPayload(payload)
                 .build();
 
         ProducerRecord<String, SpecificRecordBase> record = new ProducerRecord<>(
                 topic,
                 null,
-                event.getTimestamp().toEpochMilli(),
+                event.getTimestamp().toEpochMilli(),  // Здесь все равно нужны миллисекунды
                 eventAvro.getHubId(),
                 eventAvro);
 

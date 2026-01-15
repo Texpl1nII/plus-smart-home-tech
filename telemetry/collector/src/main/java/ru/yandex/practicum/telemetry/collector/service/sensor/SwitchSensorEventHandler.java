@@ -3,9 +3,9 @@ package ru.yandex.practicum.telemetry.collector.service.sensor;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.SwitchSensorAvro;
 import ru.yandex.practicum.telemetry.collector.kafka.KafkaClientProducer;
+import ru.yandex.practicum.telemetry.collector.dto.sensor.SwitchSensorEvent;
 import ru.yandex.practicum.telemetry.collector.dto.sensor.SensorEvent;
 import ru.yandex.practicum.telemetry.collector.dto.sensor.SensorEventType;
-import ru.yandex.practicum.telemetry.collector.dto.sensor.SwitchSensorEvent;
 
 @Component
 public class SwitchSensorEventHandler extends BaseSensorEventHandler<SwitchSensorAvro> {
@@ -17,7 +17,7 @@ public class SwitchSensorEventHandler extends BaseSensorEventHandler<SwitchSenso
     protected SwitchSensorAvro mapToAvro(SensorEvent event) {
         SwitchSensorEvent switchSensorEvent = (SwitchSensorEvent) event;
         return SwitchSensorAvro.newBuilder()
-                .setState(switchSensorEvent.isState())
+                .setState(switchSensorEvent.getState())
                 .build();
     }
 

@@ -31,7 +31,6 @@ public class ScenarioAddedEventHandler extends BaseHubEventHandler<ScenarioAdded
     }
 
     private ScenarioConditionAvro mapToConditionAvro(ScenarioCondition scenarioCondition) {
-
         return ScenarioConditionAvro.newBuilder()
                 .setSensorId(scenarioCondition.getSensorId())
                 .setOperation(ConditionOperationAvro.valueOf(scenarioCondition.getOperation().name()))
@@ -41,12 +40,7 @@ public class ScenarioAddedEventHandler extends BaseHubEventHandler<ScenarioAdded
     }
 
     private DeviceActionAvro mapToActionAvro(DeviceAction deviceAction) {
-        ActionTypeAvro actionTypeAvro = switch (deviceAction.getType()) {
-            case INVERSE -> ActionTypeAvro.INVERSE;
-            case ACTIVATE -> ActionTypeAvro.ACTIVATE;
-            case SET_VALUE -> ActionTypeAvro.SET_VALUE;
-            case DEACTIVATE -> ActionTypeAvro.DEACTIVATE;
-        };
+        // Убран неиспользуемый switch
         return DeviceActionAvro.newBuilder()
                 .setSensorId(deviceAction.getSensorId())
                 .setType(ActionTypeAvro.valueOf(deviceAction.getType().name()))

@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.kafka;
 
+import jakarta.annotation.PreDestroy;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -15,21 +16,13 @@ import java.util.Properties;
 @Configuration
 public class KafkaProducerConfig {
 
+    @Value("${kafka.bootstrap.server}")
+    private String bootstrapServer;
+
     @Bean
-    KafkaClientProducer getProducer() {
+    public KafkaClientProducer getProducer() {
         return new KafkaClientProducer() {
             private Producer<String, SpecificRecordBase> producer;
-
-            @Value("${kafka.bootstrap.server}")
-            private String bootstrapServer;
-
-            @Override
-            public Producer<String, SpecificRecordBase> getProducer() {
-                if (producer == null) {
-                    initProducer();
-                }
-                return producer;
-            }
 
             private void initProducer() {
                 Properties config = new Properties();
@@ -41,6 +34,14 @@ public class KafkaProducerConfig {
             }
 
             @Override
+            public Producer<String, SpecificRecordBase> getProducer() {
+                if (producer == null) {
+                    initProducer();
+                }
+                return producer;
+            }
+
+            @Override
             public void stop() {
                 if (producer != null) {
                     producer.flush();
@@ -48,5 +49,10 @@ public class KafkaProducerConfig {
                 }
             }
         };
+    }
+
+    @PreDestroy
+    public void onDestroy() {
+        getProducer().stop();
     }
 }

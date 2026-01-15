@@ -28,10 +28,27 @@ public class EventController {
     private final Map<HubEventType, HubEventHandler> hubEventHandlers;
 
     public EventController(List<SensorEventHandler> sensorEventHandlerList, List<HubEventHandler> hubEventHandlerList) {
+        // Добавлена проверка на дубликаты
         this.sensorEventHandlers = sensorEventHandlerList.stream()
-                .collect(Collectors.toMap(SensorEventHandler::getMessageType, Function.identity()));
+                .collect(Collectors.toMap(
+                        SensorEventHandler::getMessageType,
+                        Function.identity(),
+                        (existing, replacement) -> {
+                            throw new IllegalStateException(
+                                    "Найдено несколько обработчиков для типа события: " + existing.getMessageType()
+                            );
+                        }
+                ));
         this.hubEventHandlers = hubEventHandlerList.stream()
-                .collect(Collectors.toMap(HubEventHandler::getMessageType, Function.identity()));
+                .collect(Collectors.toMap(
+                        HubEventHandler::getMessageType,
+                        Function.identity(),
+                        (existing, replacement) -> {
+                            throw new IllegalStateException(
+                                    "Найдено несколько обработчиков для типа события: " + existing.getMessageType()
+                            );
+                        }
+                ));
     }
 
     @PostMapping("/sensors")

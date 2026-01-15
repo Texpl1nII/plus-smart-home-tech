@@ -1,19 +1,19 @@
 package ru.yandex.practicum.telemetry.collector.dto.sensor;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import jakarta.validation.constraints.NotNull;
 
 @Getter
 @Setter
 @ToString(callSuper = true)
 public class LightSensorEvent extends SensorEvent {
     @NotNull
-    private int linkQuality;
+    private Integer linkQuality;
+
     @NotNull
-    private int luminosity;
+    private Integer luminosity;
 
     @Override
     public SensorEventType getType() {
