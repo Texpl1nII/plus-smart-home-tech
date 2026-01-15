@@ -14,7 +14,7 @@ import ru.yandex.practicum.telemetry.collector.dto.sensor.SensorEvent;
 public abstract class BaseSensorEventHandler<T extends SpecificRecordBase> implements SensorEventHandler {
     protected final KafkaClientProducer producer;
 
-    @Value("${kafka.topic.sensor}")
+    @Value("${kafka.bootstrap.servers}")
     protected String topic;
 
     protected abstract T mapToAvro(SensorEvent event);

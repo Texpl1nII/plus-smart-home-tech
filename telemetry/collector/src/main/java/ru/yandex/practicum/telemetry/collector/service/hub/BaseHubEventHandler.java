@@ -14,7 +14,7 @@ import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
 public abstract class BaseHubEventHandler<T extends SpecificRecordBase> implements HubEventHandler {
     protected final KafkaClientProducer producer;
 
-    @Value("${kafka.topic.hub}")
+    @Value("${kafka.bootstrap.servers}")
     protected String topic;
 
     protected abstract T mapToAvro(HubEvent event);
