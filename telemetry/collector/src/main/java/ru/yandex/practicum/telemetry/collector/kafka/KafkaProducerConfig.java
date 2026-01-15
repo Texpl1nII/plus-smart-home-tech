@@ -16,7 +16,7 @@ import java.util.Properties;
 @Configuration
 public class KafkaProducerConfig {
 
-    @Value("${kafka.bootstrap.servers}")
+    @Value("${kafka.bootstrap.server}")
     private String bootstrapServer;
 
     @Bean
@@ -30,21 +30,12 @@ public class KafkaProducerConfig {
                 config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
                 config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, GeneralAvroSerializer.class);
 
-                // Добавьте для отладки
-                config.put(ProducerConfig.CLIENT_ID_CONFIG, "collector-producer");
-                config.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000); // 10 секунд таймаут
-                config.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 5000);
-
-                System.out.println("DEBUG: Creating KafkaProducer with bootstrap servers: " + bootstrapServer);
-
                 producer = new KafkaProducer<>(config);
-                System.out.println("DEBUG: KafkaProducer created successfully");
             }
 
             @Override
             public Producer<String, SpecificRecordBase> getProducer() {
                 if (producer == null) {
-                    System.out.println("DEBUG: Initializing KafkaProducer...");
                     initProducer();
                 }
                 return producer;
@@ -53,10 +44,8 @@ public class KafkaProducerConfig {
             @Override
             public void stop() {
                 if (producer != null) {
-                    System.out.println("DEBUG: Stopping KafkaProducer...");
                     producer.flush();
                     producer.close(Duration.ofSeconds(30));
-                    System.out.println("DEBUG: KafkaProducer stopped");
                 }
             }
         };
