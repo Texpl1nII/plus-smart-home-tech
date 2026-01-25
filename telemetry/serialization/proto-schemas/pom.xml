@@ -11,15 +11,23 @@
 
     <artifactId>proto-schemas</artifactId>
 
+    <properties>
+        <grpc.version>1.63.0</grpc.version>
+        <protobuf.version>3.25.3</protobuf.version>
+        <protoc.version>3.25.3</protoc.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
+            <version>${grpc.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
+            <version>${grpc.version}</version>
         </dependency>
 
         <!-- Until gRPC generator library moves to generated jakarta instead of javax -->
