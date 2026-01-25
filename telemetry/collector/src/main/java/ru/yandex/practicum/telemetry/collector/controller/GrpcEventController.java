@@ -1,14 +1,13 @@
 package ru.yandex.practicum.telemetry.collector.controller;
 
 import com.google.protobuf.Empty;
+import com.google.protobuf.Timestamp;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.*;
 import ru.yandex.practicum.telemetry.collector.dto.hub.*;
@@ -19,6 +18,7 @@ import ru.yandex.practicum.telemetry.collector.service.hub.HubEventHandler;
 import ru.yandex.practicum.telemetry.collector.service.sensor.SensorEventHandler;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -26,14 +26,12 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @GrpcService
-@RequiredArgsConstructor
-@Component
 public class GrpcEventController extends CollectorControllerGrpc.CollectorControllerImplBase {
 
     private final Map<SensorEventProto.PayloadCase, SensorEventHandler> sensorEventHandlers;
     private final Map<HubEventProto.PayloadCase, HubEventHandler> hubEventHandlers;
 
-    @Autowired  // Явное указание для Spring
+    @Autowired
     public GrpcEventController(
             List<SensorEventHandler> sensorEventHandlerList,
             List<HubEventHandler> hubEventHandlerList) {
@@ -112,7 +110,10 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
                 HubEvent dto = convertToHubEventDto(request);
                 hubEventHandlers.get(payloadCase).handle(dto);
             } else {
-                throw new IllegalArgumentException("Не найден обработчик для события " + payloadCase);
+                // Для SCENARIO событий может не быть обработчиков - это нормально
+                log.info("Обработчик для события {} не найден, создаем DTO", payloadCase);
+                HubEvent dto = convertToHubEventDto(request);
+                log.info("Создан DTO для события: {}", dto);
             }
 
             responseObserver.onNext(Empty.getDefaultInstance());
@@ -243,7 +244,6 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
             case DEVICE_ADDED:
                 DeviceAddedEventProto deviceAddedProto = proto.getDeviceAdded();
                 DeviceAddedEvent deviceAddedEvent = (DeviceAddedEvent) event;
-                // Используем setId() так как поле называется id
                 deviceAddedEvent.setId(deviceAddedProto.getId());
                 deviceAddedEvent.setDeviceType(mapDeviceTypeProto(deviceAddedProto.getType()));
                 break;
@@ -257,15 +257,47 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
             case SCENARIO_ADDED:
                 ScenarioAddedEventProto scenarioAddedProto = proto.getScenarioAdded();
                 ScenarioAddedEvent scenarioAddedEvent = (ScenarioAddedEvent) event;
-                // Проверьте, есть ли в ScenarioAddedEvent поле name
                 scenarioAddedEvent.setName(scenarioAddedProto.getName());
-                // Если нужно заполнить condition и action, добавьте здесь
+
+                // Преобразуем condition и action из Protobuf в ваши DTO
+                List<ScenarioCondition> conditions = new ArrayList<>();
+                for (ScenarioConditionProto conditionProto : scenarioAddedProto.getConditionList()) {
+                    ScenarioCondition condition = new ScenarioCondition();
+                    condition.setSensorId(conditionProto.getSensorId());
+                    condition.setType(mapConditionTypeProto(conditionProto.getType()));
+                    condition.setOperation(mapConditionOperationProto(conditionProto.getOperation()));
+
+                    // Заполняем значение в зависимости от типа
+                    switch (conditionProto.getValueCase()) {
+                        case BOOL_VALUE:
+                            // В вашем DTO value - int, преобразуем bool в int
+                            condition.setValue(conditionProto.getBoolValue() ? 1 : 0);
+                            break;
+                        case INT_VALUE:
+                            condition.setValue(conditionProto.getIntValue());
+                            break;
+                        case VALUE_NOT_SET:
+                        default:
+                            condition.setValue(0); // значение по умолчанию
+                            break;
+                    }
+                    conditions.add(condition);
+                }
+                scenarioAddedEvent.setConditions(conditions);
+
+                // Преобразуем action (если в вашем DTO есть DeviceAction)
+                // Если нет - оставляем пустой список
+                scenarioAddedEvent.setActions(new ArrayList<>());
+
+                log.info("Создан ScenarioAddedEvent: name={}, conditions={}",
+                        scenarioAddedEvent.getName(), scenarioAddedEvent.getConditions().size());
                 break;
 
             case SCENARIO_REMOVED:
                 ScenarioRemovedEventProto scenarioRemovedProto = proto.getScenarioRemoved();
                 ScenarioRemovedEvent scenarioRemovedEvent = (ScenarioRemovedEvent) event;
                 scenarioRemovedEvent.setName(scenarioRemovedProto.getName());
+                log.info("Создан ScenarioRemovedEvent: name={}", scenarioRemovedEvent.getName());
                 break;
 
             default:
@@ -273,7 +305,8 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
         }
     }
 
-    // Вспомогательные методы для преобразования типов
+    // Вспомогательные методы для преобразования enum
+
     private SensorEventProto.PayloadCase mapSensorEventTypeToPayloadCase(SensorEventType type) {
         switch (type) {
             case MOTION_SENSOR_EVENT: return SensorEventProto.PayloadCase.MOTION_SENSOR;
@@ -303,6 +336,27 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
             case CLIMATE_SENSOR: return DeviceType.CLIMATE_SENSOR;
             case SWITCH_SENSOR: return DeviceType.SWITCH_SENSOR;
             default: throw new IllegalArgumentException("Неизвестный DeviceTypeProto: " + protoType);
+        }
+    }
+
+    private ConditionType mapConditionTypeProto(ConditionTypeProto protoType) {
+        switch (protoType) {
+            case MOTION: return ConditionType.MOTION;
+            case LUMINOSITY: return ConditionType.LUMINOSITY;
+            case SWITCH: return ConditionType.SWITCH;
+            case TEMPERATURE: return ConditionType.TEMPERATURE;
+            case CO2LEVEL: return ConditionType.CO2LEVEL;
+            case HUMIDITY: return ConditionType.HUMIDITY;
+            default: throw new IllegalArgumentException("Неизвестный ConditionTypeProto: " + protoType);
+        }
+    }
+
+    private ConditionOperation mapConditionOperationProto(ConditionOperationProto protoOperation) {
+        switch (protoOperation) {
+            case EQUALS: return ConditionOperation.EQUALS;
+            case GREATER_THAN: return ConditionOperation.GREATER_THAN;
+            case LOWER_THAN: return ConditionOperation.LOWER_THAN;
+            default: throw new IllegalArgumentException("Неизвестный ConditionOperationProto: " + protoOperation);
         }
     }
 }
