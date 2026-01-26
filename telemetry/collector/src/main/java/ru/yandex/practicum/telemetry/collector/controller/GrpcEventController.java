@@ -259,7 +259,7 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
                 ScenarioAddedEvent scenarioAddedEvent = (ScenarioAddedEvent) event;
                 scenarioAddedEvent.setName(scenarioAddedProto.getName());
 
-                // Преобразуем condition и action из Protobuf в ваши DTO
+                // Преобразуем conditions
                 List<ScenarioCondition> conditions = new ArrayList<>();
                 for (ScenarioConditionProto conditionProto : scenarioAddedProto.getConditionList()) {
                     ScenarioCondition condition = new ScenarioCondition();
@@ -267,10 +267,9 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
                     condition.setType(mapConditionTypeProto(conditionProto.getType()));
                     condition.setOperation(mapConditionOperationProto(conditionProto.getOperation()));
 
-                    // Заполняем значение в зависимости от типа
+                    // Заполняем значение
                     switch (conditionProto.getValueCase()) {
                         case BOOL_VALUE:
-                            // В вашем DTO value - int, преобразуем bool в int
                             condition.setValue(conditionProto.getBoolValue() ? 1 : 0);
                             break;
                         case INT_VALUE:
@@ -278,26 +277,35 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
                             break;
                         case VALUE_NOT_SET:
                         default:
-                            condition.setValue(0); // значение по умолчанию
+                            condition.setValue(0);
                             break;
                     }
                     conditions.add(condition);
                 }
                 scenarioAddedEvent.setConditions(conditions);
 
-                // Преобразуем action (если в вашем DTO есть DeviceAction)
-                // Если нет - оставляем пустой список
-                scenarioAddedEvent.setActions(new ArrayList<>());
+                // Преобразуем actions
+                List<DeviceAction> actions = new ArrayList<>();
+                for (DeviceActionProto actionProto : scenarioAddedProto.getActionList()) {
+                    DeviceAction action = new DeviceAction();
+                    action.setSensorId(actionProto.getSensorId());
+                    action.setType(mapActionTypeProto(actionProto.getType()));
 
-                log.info("Создан ScenarioAddedEvent: name={}, conditions={}",
-                        scenarioAddedEvent.getName(), scenarioAddedEvent.getConditions().size());
-                break;
+                    // Проверяем, есть ли значение
+                    if (actionProto.hasValue()) {
+                        action.setValue(actionProto.getValue());
+                    } else {
+                        action.setValue(null); // или оставить null
+                    }
 
-            case SCENARIO_REMOVED:
-                ScenarioRemovedEventProto scenarioRemovedProto = proto.getScenarioRemoved();
-                ScenarioRemovedEvent scenarioRemovedEvent = (ScenarioRemovedEvent) event;
-                scenarioRemovedEvent.setName(scenarioRemovedProto.getName());
-                log.info("Создан ScenarioRemovedEvent: name={}", scenarioRemovedEvent.getName());
+                    actions.add(action);
+                }
+                scenarioAddedEvent.setActions(actions);
+
+                log.info("Создан ScenarioAddedEvent: name={}, conditions={}, actions={}",
+                        scenarioAddedEvent.getName(),
+                        scenarioAddedEvent.getConditions().size(),
+                        scenarioAddedEvent.getActions().size());
                 break;
 
             default:
@@ -328,6 +336,16 @@ public class GrpcEventController extends CollectorControllerGrpc.CollectorContro
         }
     }
 
+    private ActionType mapActionTypeProto(ActionTypeProto protoType) {
+        switch (protoType) {
+            case ACTIVATE: return ActionType.ACTIVATE;
+            case DEACTIVATE: return ActionType.DEACTIVATE;
+            case INVERSE: return ActionType.INVERSE;
+            case SET_VALUE: return ActionType.SET_VALUE;
+            default: throw new IllegalArgumentException("Неизвестный ActionTypeProto: " + protoType);
+        }
+    }
+    
     private DeviceType mapDeviceTypeProto(DeviceTypeProto protoType) {
         switch (protoType) {
             case MOTION_SENSOR: return DeviceType.MOTION_SENSOR;
