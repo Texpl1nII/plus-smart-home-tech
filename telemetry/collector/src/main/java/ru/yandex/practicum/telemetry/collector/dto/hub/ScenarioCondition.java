@@ -13,6 +13,6 @@ public class ScenarioCondition {
     @NotBlank
     private String sensorId;
     private ConditionType type;
-    private Operation operation;
+    private ConditionOperation operation;
     private int value;
 }
