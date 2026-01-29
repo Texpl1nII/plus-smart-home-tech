@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: analyzer
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_home
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+analyzer:
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    consumer:
+      hub:
+        bootstrap-servers: localhost:9092
+        group-id: analyzer-hub-group
+        auto-offset-reset: earliest
+        enable-auto-commit: false
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.HubEventDeserializer
+
+      snapshot:
+        bootstrap-servers: localhost:9092
+        group-id: analyzer-snapshot-group
+        auto-offset-reset: latest
+        enable-auto-commit: false
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.SensorsSnapshotDeserializer
+
+    topics:
+      hub-events: telemetry.hubs.v1
+      snapshots-events: telemetry.snapshots.v1
+
+grpc:
+  client:
+    hub-router:
+      address: 'static://localhost:59090'
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
+
+logging:
+  level:
+    ru.yandex.practicum: DEBUG
+    org.springframework.kafka: WARN
