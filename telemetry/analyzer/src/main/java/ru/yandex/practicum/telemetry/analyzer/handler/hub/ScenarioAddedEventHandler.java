@@ -77,10 +77,10 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Sensor not found: " + conditionAvro.getSensorId()));
 
-        // Создаем условие
+        // Создаем условие - ИСПРАВЛЕНО: используем Avro enum напрямую
         Condition condition = Condition.builder()
-                .type(convertConditionType(conditionAvro.getType()))
-                .operation(convertConditionOperation(conditionAvro.getOperation()))
+                .type(conditionAvro.getType()) // ConditionTypeAvro напрямую
+                .operation(conditionAvro.getOperation()) // ConditionOperationAvro напрямую
                 .value(asInteger(conditionAvro.getValue()))
                 .build();
 
@@ -104,9 +104,9 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Sensor not found: " + actionAvro.getSensorId()));
 
-        // Создаем действие
+        // Создаем действие - ИСПРАВЛЕНО: используем Avro enum напрямую
         Action action = Action.builder()
-                .type(convertActionType(actionAvro.getType()))
+                .type(actionAvro.getType()) // ActionTypeAvro напрямую
                 .value(actionAvro.getValue())
                 .build();
 
@@ -121,34 +121,6 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                 .build();
 
         scenarioActionRepository.save(scenarioAction);
-    }
-
-    private ConditionType convertConditionType(ConditionTypeAvro type) {
-        return switch (type) {
-            case MOTION -> ConditionType.MOTION;
-            case LUMINOSITY -> ConditionType.LUMINOSITY;
-            case SWITCH -> ConditionType.SWITCH;
-            case TEMPERATURE -> ConditionType.TEMPERATURE;
-            case CO2LEVEL -> ConditionType.CO2LEVEL;
-            case HUMIDITY -> ConditionType.HUMIDITY;
-        };
-    }
-
-    private ConditionOperation convertConditionOperation(ConditionOperationAvro operation) {
-        return switch (operation) {
-            case EQUALS -> ConditionOperation.EQUALS;
-            case GREATER_THAN -> ConditionOperation.GREATER_THAN;
-            case LOWER_THAN -> ConditionOperation.LOWER_THAN;
-        };
-    }
-
-    private ActionType convertActionType(ActionTypeAvro type) {
-        return switch (type) {
-            case ACTIVATE -> ActionType.ACTIVATE;
-            case DEACTIVATE -> ActionType.DEACTIVATE;
-            case INVERSE -> ActionType.INVERSE;
-            case SET_VALUE -> ActionType.SET_VALUE;
-        };
     }
 
     private Integer asInteger(Object value) {

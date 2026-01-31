@@ -18,28 +18,26 @@ spring:
 
 analyzer:
   kafka:
-    bootstrap-servers: localhost:9092
+    topics:
+      hub-events: telemetry.hubs.v1
+      snapshots-events: telemetry.snapshots.v1
 
     consumer:
       hub:
         bootstrap-servers: localhost:9092
         group-id: analyzer-hub-group
         auto-offset-reset: earliest
-        enable-auto-commit: false
+        enable-auto-commit: true  # Для hub events можно auto-commit
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.HubEventDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
 
       snapshot:
         bootstrap-servers: localhost:9092
         group-id: analyzer-snapshot-group
         auto-offset-reset: latest
-        enable-auto-commit: false
+        enable-auto-commit: false  # Для snapshot важно ручное подтверждение
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.SensorsSnapshotDeserializer
-
-    topics:
-      hub-events: telemetry.hubs.v1
-      snapshots-events: telemetry.snapshots.v1
+        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
 
 grpc:
   client:

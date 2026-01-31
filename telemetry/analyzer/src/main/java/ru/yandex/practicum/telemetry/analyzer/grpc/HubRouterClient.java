@@ -8,13 +8,16 @@ import ru.yandex.practicum.grpc.telemetry.event.ActionTypeProto;
 import ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto;
 import ru.yandex.practicum.grpc.telemetry.event.DeviceActionRequest;
 import ru.yandex.practicum.grpc.telemetry.hubrouter.HubRouterControllerGrpc;
-import ru.yandex.practicum.telemetry.analyzer.entity.ActionType;
+import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
+import ru.yandex.practicum.telemetry.analyzer.entity.Action;
+import ru.yandex.practicum.telemetry.analyzer.entity.Scenario;
 import ru.yandex.practicum.telemetry.analyzer.entity.ScenarioAction;
+import ru.yandex.practicum.telemetry.analyzer.entity.Sensor;
 
 import java.time.Instant;
 
-@Slf4j
 @Service
+@Slf4j
 public class HubRouterClient {
 
     private final HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient;
@@ -26,39 +29,45 @@ public class HubRouterClient {
 
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
         try {
-            DeviceActionRequest request = createDeviceActionRequest(scenarioAction);
-            hubRouterClient.handleDeviceAction(request);
+            DeviceActionRequest deviceActionRequest = toDeviceActionRequest(scenarioAction);
+            hubRouterClient.handleDeviceAction(deviceActionRequest);
 
             log.debug("Sent device action for scenario: {} to sensor: {}",
                     scenarioAction.getScenario().getName(),
                     scenarioAction.getSensor().getId());
+
         } catch (Exception e) {
-            log.error("Error sending device request for scenario: {}",
+            log.error("Error occurred while sending request for scenario: {}",
                     scenarioAction.getScenario().getName(), e);
-            throw new RuntimeException("Failed to send device request", e);
         }
     }
 
-    private DeviceActionRequest createDeviceActionRequest(ScenarioAction scenarioAction) {
-        return DeviceActionRequest.newBuilder()
-                .setHubId(scenarioAction.getScenario().getHubId())
-                .setScenarioName(scenarioAction.getScenario().getName())
-                .setAction(DeviceActionProto.newBuilder()
-                        .setSensorId(scenarioAction.getSensor().getId())
-                        .setType(convertActionType(scenarioAction.getAction().getType()))
-                        .setValue(scenarioAction.getAction().getValue())
-                        .build())
-                .setTimestamp(currentTimestamp())
-                .build();
-    }
-
-    private ActionTypeProto convertActionType(ActionType actionType) {
+    private ActionTypeProto toActionTypeProto(ActionTypeAvro actionType) {
         return switch (actionType) {
             case ACTIVATE -> ActionTypeProto.ACTIVATE;
             case DEACTIVATE -> ActionTypeProto.DEACTIVATE;
             case INVERSE -> ActionTypeProto.INVERSE;
             case SET_VALUE -> ActionTypeProto.SET_VALUE;
+            default -> throw new IllegalArgumentException("Unknown action type: " + actionType);
         };
+    }
+
+    private DeviceActionRequest toDeviceActionRequest(ScenarioAction scenarioAction) {
+        Scenario scenario = scenarioAction.getScenario();
+        Sensor sensor = scenarioAction.getSensor();
+        Action action = scenarioAction.getAction();
+
+        // ВАЖНО: value должен быть int, а не String!
+        return DeviceActionRequest.newBuilder()
+                .setHubId(scenario.getHubId())
+                .setScenarioName(scenario.getName())
+                .setAction(DeviceActionProto.newBuilder()
+                        .setSensorId(sensor.getId())
+                        .setType(toActionTypeProto(action.getType()))
+                        .setValue(action.getValue()) // int, а не String!
+                        .build())
+                .setTimestamp(currentTimestamp())
+                .build();
     }
 
     private Timestamp currentTimestamp() {

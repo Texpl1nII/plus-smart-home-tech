@@ -18,13 +18,12 @@ message HubEventProto {
   }
 }
 
-// события (де)регистрации устройств
 enum DeviceTypeProto {
-  MOTION_SENSOR = 0;      // датчик движения
-  TEMPERATURE_SENSOR = 1; // датчик температуры
-  LIGHT_SENSOR = 2;       // датчик освещения
-  CLIMATE_SENSOR = 3;     // датчик контроля климата
-  SWITCH_SENSOR = 4;      // переключатель
+  MOTION_SENSOR = 0;
+  TEMPERATURE_SENSOR = 1;
+  LIGHT_SENSOR = 2;
+  CLIMATE_SENSOR = 3;
+  SWITCH_SENSOR = 4;
 }
 
 message DeviceAddedEventProto {
@@ -84,9 +83,9 @@ message ScenarioRemovedEventProto {
   string name = 1;
 }
 
-  message DeviceActionRequest {
-    string hub_id = 1;
-    string scenario_name = 2;
-    DeviceActionProto action = 3;
-    google.protobuf.Timestamp timestamp = 4;
+message DeviceActionRequest {
+  string hub_id = 1;
+  string scenario_name = 2;
+  DeviceActionProto action = 3;
+  google.protobuf.Timestamp timestamp = 4;
 }

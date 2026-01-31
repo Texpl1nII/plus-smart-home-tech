@@ -2,6 +2,7 @@ package ru.yandex.practicum.telemetry.analyzer.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 
 @Entity
 @Table(name = "actions")
@@ -19,7 +20,7 @@ public class Action {
 
     @Column(name = "type")
     @Enumerated(EnumType.STRING)
-    private ActionType type;
+    private ActionTypeAvro type; // Используем Avro enum
 
     @Column(name = "value")
     private Integer value;

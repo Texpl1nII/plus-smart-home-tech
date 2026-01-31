@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.telemetry.analyzer.deserializer.HubEventDeserializer;
 import ru.yandex.practicum.telemetry.analyzer.handler.HubEventHandler;
 import ru.yandex.practicum.telemetry.analyzer.kafka.KafkaClient;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
@@ -21,15 +22,19 @@ import java.util.stream.Collectors;
 public class HubEventProcessor implements Runnable {
 
     private final KafkaClient kafkaClient;
+    private final HubEventDeserializer hubEventDeserializer;
     private final Map<String, HubEventHandler> hubEventHandlers;
 
     @Value("${analyzer.kafka.topics.hub-events}")
     private String hubEventsTopic;
 
-    public HubEventProcessor(KafkaClient kafkaClient, List<HubEventHandler> hubEventHandlers) {
+    public HubEventProcessor(KafkaClient kafkaClient,
+                             List<HubEventHandler> hubEventHandlers,
+                             HubEventDeserializer hubEventDeserializer) {
         this.kafkaClient = kafkaClient;
         this.hubEventHandlers = hubEventHandlers.stream()
                 .collect(Collectors.toMap(HubEventHandler::getEventType, Function.identity()));
+        this.hubEventDeserializer = hubEventDeserializer;
     }
 
     @Override
@@ -44,12 +49,15 @@ public class HubEventProcessor implements Runnable {
             log.info("HubEventProcessor started, subscribed to topic: {}", hubEventsTopic);
 
             while (true) {
-                ConsumerRecords<String, HubEventAvro> records = consumer.poll(Duration.ofMillis(1000));
+                ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(1000));
 
                 if (!records.isEmpty()) {
-                    for (ConsumerRecord<String, HubEventAvro> record : records) {
+                    for (ConsumerRecord<String, byte[]> record : records) {
                         try {
-                            HubEventAvro event = record.value();
+                            // Ручная десериализация
+                            HubEventAvro event = hubEventDeserializer.deserialize(
+                                    record.topic(), record.value());
+
                             String eventPayloadName = event.getPayload().getClass().getSimpleName();
                             HubEventHandler eventHandler = hubEventHandlers.get(eventPayloadName);
 

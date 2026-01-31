@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.telemetry.analyzer.deserializer.SensorsSnapshotDeserializer;
 import ru.yandex.practicum.telemetry.analyzer.kafka.KafkaClient;
 import ru.yandex.practicum.telemetry.analyzer.service.SnapshotHandler;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
@@ -19,13 +20,17 @@ public class SnapshotProcessor {
 
     private final KafkaClient kafkaClient;
     private final SnapshotHandler snapshotHandler;
+    private final SensorsSnapshotDeserializer snapshotDeserializer;
 
     @Value("${analyzer.kafka.topics.snapshots-events}")
     private String snapshotsTopic;
 
-    public SnapshotProcessor(KafkaClient kafkaClient, SnapshotHandler snapshotHandler) {
+    public SnapshotProcessor(KafkaClient kafkaClient,
+                             SnapshotHandler snapshotHandler,
+                             SensorsSnapshotDeserializer snapshotDeserializer) {
         this.kafkaClient = kafkaClient;
         this.snapshotHandler = snapshotHandler;
+        this.snapshotDeserializer = snapshotDeserializer;
     }
 
     public void start() {
@@ -39,11 +44,13 @@ public class SnapshotProcessor {
             log.info("SnapshotProcessor started, subscribed to topic: {}", snapshotsTopic);
 
             while (true) {
-                ConsumerRecords<String, SensorsSnapshotAvro> records = consumer.poll(Duration.ofMillis(100));
+                ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(100));
 
-                for (ConsumerRecord<String, SensorsSnapshotAvro> record : records) {
+                for (ConsumerRecord<String, byte[]> record : records) {
                     try {
-                        SensorsSnapshotAvro snapshot = record.value();
+                        // Ручная десериализация
+                        SensorsSnapshotAvro snapshot = snapshotDeserializer.deserialize(
+                                record.topic(), record.value());
                         snapshotHandler.handle(snapshot);
                         log.debug("Processed snapshot for hub: {}", snapshot.getHubId());
                     } catch (Exception e) {

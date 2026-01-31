@@ -2,6 +2,8 @@ package ru.yandex.practicum.telemetry.analyzer.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ru.yandex.practicum.kafka.telemetry.event.ConditionOperationAvro;
+import ru.yandex.practicum.kafka.telemetry.event.ConditionTypeAvro;
 
 @Entity
 @Table(name = "conditions")
@@ -19,11 +21,11 @@ public class Condition {
 
     @Column(name = "type")
     @Enumerated(EnumType.STRING)
-    private ConditionType type;
+    private ConditionTypeAvro type; // Avro enum
 
     @Column(name = "operation")
     @Enumerated(EnumType.STRING)
-    private ConditionOperation operation;
+    private ConditionOperationAvro operation; // Avro enum
 
     @Column(name = "value")
     private Integer value;

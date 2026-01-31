@@ -5,30 +5,28 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
-import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 
 @Slf4j
 @Configuration
 public class KafkaConfig {
 
     @Autowired
-    private KafkaConsumer<String, HubEventAvro> hubKafkaConsumer;
+    private KafkaConsumer<String, byte[]> hubKafkaConsumer;
 
     @Autowired
-    private KafkaConsumer<String, SensorsSnapshotAvro> snapshotKafkaConsumer;
+    private KafkaConsumer<String, byte[]> snapshotKafkaConsumer;
 
     @Bean
     public KafkaClient kafkaClient() {
         return new KafkaClient() {
 
             @Override
-            public KafkaConsumer<String, HubEventAvro> getHubConsumer() {
+            public KafkaConsumer<String, byte[]> getHubConsumer() {
                 return hubKafkaConsumer;
             }
 
             @Override
-            public KafkaConsumer<String, SensorsSnapshotAvro> getSnapshotConsumer() {
+            public KafkaConsumer<String, byte[]> getSnapshotConsumer() {
                 return snapshotKafkaConsumer;
             }
 

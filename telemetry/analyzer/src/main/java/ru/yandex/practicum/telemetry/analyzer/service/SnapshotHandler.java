@@ -5,7 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.*;
-import ru.yandex.practicum.telemetry.analyzer.entity.*;
+import ru.yandex.practicum.telemetry.analyzer.entity.Condition;
+import ru.yandex.practicum.telemetry.analyzer.entity.Scenario;
+import ru.yandex.practicum.telemetry.analyzer.entity.ScenarioAction;
+import ru.yandex.practicum.telemetry.analyzer.entity.ScenarioCondition;
 import ru.yandex.practicum.telemetry.analyzer.grpc.HubRouterClient;
 import ru.yandex.practicum.telemetry.analyzer.repository.*;
 
@@ -66,10 +69,11 @@ public class SnapshotHandler {
                 currentValue, condition.getValue());
     }
 
-    private Integer extractSensorValue(ConditionType conditionType,
+    private Integer extractSensorValue(ConditionTypeAvro conditionType, // ИСПРАВЛЕНО: ConditionTypeAvro
                                        SensorStateAvro sensorState) {
         Object data = sensorState.getData();
 
+        // ИСПРАВЛЕНО: используем ConditionTypeAvro напрямую
         return switch (conditionType) {
             case MOTION -> {
                 if (data instanceof MotionSensorAvro motion) {
@@ -107,11 +111,13 @@ public class SnapshotHandler {
                 }
                 yield null;
             }
+            default -> null;
         };
     }
 
-    private boolean checkConditionOperation(ConditionOperation operation,
+    private boolean checkConditionOperation(ConditionOperationAvro operation, // ИСПРАВЛЕНО: ConditionOperationAvro
                                             Integer currentValue, Integer targetValue) {
+        // ИСПРАВЛЕНО: используем ConditionOperationAvro напрямую
         return switch (operation) {
             case EQUALS -> currentValue.equals(targetValue);
             case GREATER_THAN -> currentValue > targetValue;
