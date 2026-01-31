@@ -15,9 +15,8 @@
         <grpc.version>1.63.0</grpc.version>
         <protobuf.version>3.25.3</protobuf.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
-        <os.detected.classifier>windows-x86_64</os.detected.classifier> <!-- Для Windows -->
-        <!-- Для Linux: linux-x86_64 -->
-        <!-- Для Mac: osx-x86_64 или osx-aarch_64 для M1/M2 -->
+        <!-- УДАЛИТЬ эту строку: -->
+        <!-- <os.detected.classifier>windows-x86_64</os.detected.classifier> -->
     </properties>
 
     <dependencies>
@@ -64,7 +63,7 @@
         </extensions>
 
         <plugins>
-            <!-- Protobuf Maven Plugin -->
+            <!-- Protobuf Maven Plugin - ИСПРАВЛЕННЫЙ -->
             <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>
@@ -74,7 +73,8 @@
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
                     <protoSourceRoot>${project.basedir}/src/main/protobuf</protoSourceRoot>
-                    <clearOutputDirectory>false</clearOutputDirectory>
+                    <outputDirectory>${project.build.directory}/generated-sources/protobuf</outputDirectory>
+                    <clearOutputDirectory>true</clearOutputDirectory>
                 </configuration>
                 <executions>
                     <execution>
@@ -100,7 +100,8 @@
                         </goals>
                         <configuration>
                             <sources>
-                                <source>${project.build.directory}/generated-sources/protobuf</source>
+                                <source>${project.build.directory}/generated-sources/protobuf/java</source>
+                                <source>${project.build.directory}/generated-sources/protobuf/grpc-java</source>
                             </sources>
                         </configuration>
                     </execution>

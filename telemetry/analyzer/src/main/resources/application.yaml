@@ -2,6 +2,16 @@ spring:
   application:
     name: analyzer
 
+  profiles:
+    active: local  # по умолчанию local
+
+---
+# LOCAL профиль (разработка)
+spring:
+  config:
+    activate:
+      on-profile: local
+
   datasource:
     url: jdbc:postgresql://localhost:5432/smart_home
     username: postgres
@@ -10,12 +20,51 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: validate  # по ТЗ используем валидацию
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+---
+# CI профиль (GitHub Actions)
+spring:
+  config:
+    activate:
+      on-profile: ci
+
+  # Для CI можно использовать H2 или отключить БД
+  datasource:
+    url: jdbc:h2:mem:smart_home;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+---
+# TEST профиль (для тестов)
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+---
+# Общие настройки для всех профилей
 analyzer:
   kafka:
     topics:
@@ -49,5 +98,5 @@ grpc:
 
 logging:
   level:
-    ru.yandex.practicum: DEBUG
+    ru.yandex.practicum: INFO
     org.springframework.kafka: WARN

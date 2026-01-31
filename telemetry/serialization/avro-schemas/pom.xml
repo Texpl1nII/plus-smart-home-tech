@@ -62,12 +62,7 @@
                             <!-- Куда положить сгенерированные Java файлы -->
                             <outputDirectory>${project.build.directory}/generated-sources/avro</outputDirectory>
                             <stringType>String</stringType>
-                            <!-- Указываем, что это IDL файлы -->
-                            <protocolFiles>
-                                <protocolFile>HubEvent.avdl</protocolFile>
-                                <protocolFile>SensorEvent.avdl</protocolFile>
-                                <protocolFile>SensorsSnapshot.avdl</protocolFile>
-                            </protocolFiles>
+                            <!-- УДАЛИТЕ блок protocolFiles, оставьте только sourceDirectory -->
                         </configuration>
                     </execution>
                 </executions>

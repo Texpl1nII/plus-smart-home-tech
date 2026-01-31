@@ -9,7 +9,6 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <!-- 1. Изменить artifactId -->
     <artifactId>analyzer</artifactId>
 
     <properties>
@@ -32,12 +31,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty-shaded</artifactId>
-            <version>${grpc.version}</version> <!-- Добавьте grpc.version в properties -->
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
         </dependency>
@@ -47,15 +40,7 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
-        <!-- 2. Убрать web зависимости (они не нужны analyzer) -->
-        <!--
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        -->
-
-        <!-- 3. Добавить JPA (нужно analyzer) -->
+        <!-- JPA (ОБЯЗАТЕЛЬНО по ТЗ) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -88,7 +73,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- 4. Изменить gRPC server на client -->
+        <!-- gRPC client (ОБЯЗАТЕЛЬНО по ТЗ) -->
         <dependency>
             <groupId>net.devh</groupId>
             <artifactId>grpc-client-spring-boot-starter</artifactId>
@@ -101,11 +86,18 @@
             <version>${protobuf.version}</version>
         </dependency>
 
-        <!-- 5. Добавить PostgreSQL (нужно analyzer) -->
+        <!-- PostgreSQL (ОБЯЗАТЕЛЬНО по ТЗ) -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- H2 ТОЛЬКО для тестов (опционально) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -115,7 +107,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- 6. Изменить mainClass -->
                     <mainClass>ru.yandex.practicum.telemetry.analyzer.AnalyzerApplication</mainClass>
                     <excludes>
                         <exclude>
