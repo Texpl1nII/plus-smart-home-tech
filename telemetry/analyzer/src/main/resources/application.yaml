@@ -3,39 +3,38 @@ spring:
     name: analyzer
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/hub_router  # или 5433
-    username: postgres
-    password: postgres
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/hub_router}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update  # или create-drop для тестов
+      ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
-grpc:
-  client:
-    hub-router:
-      address: 'static://localhost:59090'
-      enableKeepAlive: true
-      keepAliveWithoutCalls: true
-      negotiationType: plaintext
 
 analyzer:
   kafka:
     consumer:
       hub:
-        bootstrap-servers: localhost:9092
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer  # ← ПРОСТОЙ
+        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
         group-id: events.analyzer
         enable-auto-commit: false
+        auto-offset-reset: earliest  # ← ДОБАВЬТЕ ЭТУ СТРОКУ!
       snapshot:
-        bootstrap-servers: localhost:9092
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
         group-id: snapshot.analyzer
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer  # ← ПРОСТОЙ
+        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
         enable-auto-commit: false
+        auto-offset-reset: earliest
+
+grpc:
+  client:
+    hub-router:
+      address: ${GRPC_SERVER_ADDRESS:static://localhost:59090}
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
