@@ -3,18 +3,26 @@ spring:
     name: analyzer
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/hub_router  # или 5433
+    url: jdbc:postgresql://localhost:5432/hub_router  # порт 5432 из docker-compose
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update  # или create-drop для тестов
+      ddl-auto: update  # создает таблицы если их нет
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # ДОБАВЬТЕ ЭТО ДЛЯ АВТОВЫПОЛНЕНИЯ schema.sql
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      continue-on-error: true  # игнорировать если таблицы уже есть
 
 grpc:
   client:
@@ -33,12 +41,26 @@ analyzer:
         value-deserializer: ru.yandex.practicum.deserializer.HubEventDeserializer
         group-id: events.analyzer
         enable-auto-commit: false
+        auto-offset-reset: earliest  # ДОБАВЬТЕ ЭТО
+        max-poll-records: 10  # ДОБАВЬТЕ ЭТО
+        session-timeout-ms: 10000  # ДОБАВЬТЕ ЭТО
       snapshot:
         bootstrap-servers: localhost:9092
         group-id: snapshot.analyzer
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: ru.yandex.practicum.deserializer.SensorsSnapshotDeserializer
         enable-auto-commit: false
+        auto-offset-reset: latest  # ДОБАВЬТЕ ЭТО
+        max-poll-records: 10  # ДОБАВЬТЕ ЭТО
+        session-timeout-ms: 10000  # ДОБАВЬТЕ ЭТО
     topics:
       hub-events: telemetry.hubs.v1
       snapshots-events: telemetry.snapshots.v1
+
+logging:
+  level:
+    ru.yandex.practicum: DEBUG  # ДОБАВЬТЕ ДЛЯ ОТЛАДКИ
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
