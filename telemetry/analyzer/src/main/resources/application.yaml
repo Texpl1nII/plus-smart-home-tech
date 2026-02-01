@@ -7,28 +7,38 @@ spring:
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 5
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: false  # временно отключите для чистоты логов
+      ddl-auto: create-drop  # ← ИЗМЕНИТЕ на create-drop для тестов
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect  # ← ДОБАВЬТЕ ЭТО!
+        format_sql: true
+        jdbc:
+          batch_size: 20
+    open-in-view: false
 
 analyzer:
   kafka:
+    bootstrap-servers: localhost:9092
+
     topics:
       hub-events: telemetry.hubs.v1
       snapshots-events: telemetry.snapshots.v1
 
     consumer:
       hub:
-        bootstrap-server: localhost:9092
         group-id: events.analyzer
         enable-auto-commit: false
         auto-offset-reset: earliest
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
       snapshot:
-        bootstrap-server: localhost:9092
         group-id: snapshot.analyzer
         enable-auto-commit: false
         auto-offset-reset: earliest
@@ -45,7 +55,7 @@ grpc:
 
 logging:
   level:
-    root: INFO
-    ru.yandex.practicum.telemetry: DEBUG
-  pattern:
-    console: "%msg%n"
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.transaction: DEBUG
+    ru.yandex.practicum.telemetry: INFO

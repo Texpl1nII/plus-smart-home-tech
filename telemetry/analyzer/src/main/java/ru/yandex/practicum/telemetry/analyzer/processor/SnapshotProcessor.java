@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class SnapshotProcessor implements Runnable { // <- Добавляем Runnable
+public class SnapshotProcessor implements Runnable { // ← ДОБАВЬТЕ implements Runnable
 
     private final KafkaClient kafkaClient;
     private final SnapshotHandler snapshotHandler;
@@ -33,7 +33,7 @@ public class SnapshotProcessor implements Runnable { // <- Добавляем Ru
         this.snapshotDeserializer = snapshotDeserializer;
     }
 
-    @Override // <- Добавляем метод run()
+    @Override  // ← ИМЕННО ЭТОТ МЕТОД ДОЛЖЕН БЫТЬ!
     public void run() {
         start();
     }
@@ -48,12 +48,11 @@ public class SnapshotProcessor implements Runnable { // <- Добавляем Ru
             consumer.subscribe(List.of(snapshotsTopic));
             log.info("SnapshotProcessor started, subscribed to topic: {}", snapshotsTopic);
 
-            while (!Thread.currentThread().isInterrupted()) { // <- Проверяем прерывание
+            while (true) {
                 ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(100));
 
                 for (ConsumerRecord<String, byte[]> record : records) {
                     try {
-                        // Ручная десериализация
                         SensorsSnapshotAvro snapshot = snapshotDeserializer.deserialize(
                                 record.topic(), record.value());
                         snapshotHandler.handle(snapshot);
