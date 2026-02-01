@@ -19,24 +19,56 @@ public class AnalyzerApplication {
         ConfigurableApplicationContext context = SpringApplication.run(AnalyzerApplication.class, args);
         log.info("Spring context started successfully");
 
-        // Получаем процессоры и клиент Kafka
+        // Получаем бины
         HubEventProcessor hubProcessor = context.getBean(HubEventProcessor.class);
         SnapshotProcessor snapshotProcessor = context.getBean(SnapshotProcessor.class);
         KafkaClient kafkaClient = context.getBean(KafkaClient.class);
 
-        // Запускаем обработку hub events в отдельном потоке
-        Thread hubThread = new Thread(hubProcessor);
+        log.info("Starting processors...");
+
+        // Запускаем обработку hub events
+        Thread hubThread = new Thread(() -> {
+            log.info("HubEventProcessor thread started");
+            try {
+                hubProcessor.run();
+            } catch (Exception e) {
+                log.error("HubEventProcessor failed", e);
+            }
+        });
         hubThread.setName("hub-event-processor");
         hubThread.start();
-        log.info("Hub event processor started in separate thread");
+        log.info("Hub event processor started");
 
-        // Запускаем обработку snapshots в отдельном потоке
-        Thread snapshotThread = new Thread(snapshotProcessor::start); // <- ИСПРАВЛЕНО
+        // Даем время для инициализации
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // Запускаем обработку snapshots
+        Thread snapshotThread = new Thread(() -> {
+            log.info("SnapshotProcessor thread started");
+            try {
+                snapshotProcessor.start();
+            } catch (Exception e) {
+                log.error("SnapshotProcessor failed", e);
+            }
+        });
         snapshotThread.setName("snapshot-processor");
         snapshotThread.start();
-        log.info("Snapshot processor started in separate thread");
+        log.info("Snapshot processor started");
 
-        // Добавляем graceful shutdown
+        // Ждем немного чтобы убедиться, что потоки запустились
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        log.info("All processors started. Application is running.");
+
+        // Graceful shutdown
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("Shutting down AnalyzerApplication...");
 
@@ -44,17 +76,16 @@ public class AnalyzerApplication {
             hubThread.interrupt();
             snapshotThread.interrupt();
 
-            // Закрываем Kafka клиент
+            // Закрываем ресурсы
             try {
                 kafkaClient.close();
+                log.info("Kafka client closed");
             } catch (Exception e) {
                 log.warn("Error closing Kafka client: {}", e.getMessage());
             }
 
-            // Закрываем контекст Spring
             context.close();
+            log.info("Spring context closed");
         }));
-
-        log.info("All processors started successfully");
     }
 }

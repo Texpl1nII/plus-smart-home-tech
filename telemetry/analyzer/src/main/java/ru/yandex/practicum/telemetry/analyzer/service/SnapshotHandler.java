@@ -30,14 +30,34 @@ public class SnapshotHandler {
         Map<String, SensorStateAvro> sensorStates = snapshot.getSensorsState();
         List<Scenario> scenarios = scenarioRepository.findByHubId(snapshot.getHubId());
 
+        log.info("=== PROCESSING SNAPSHOT ===");
+        log.info("Hub: {}, Sensors in snapshot: {}", snapshot.getHubId(), sensorStates.keySet());
+        log.info("Found {} scenarios for hub {}", scenarios.size(), snapshot.getHubId());
+
         if (scenarios.isEmpty()) {
-            log.debug("No scenarios found for hub: {}", snapshot.getHubId());
+            log.warn("No scenarios found for hub: {}", snapshot.getHubId());
             return;
         }
 
-        scenarios.stream()
-                .filter(scenario -> checkScenarioConditions(scenario, sensorStates))
-                .forEach(this::executeScenarioActions);
+        // Логируем все сценарии
+        for (Scenario scenario : scenarios) {
+            log.info("Checking scenario: {} (ID: {})", scenario.getName(), scenario.getId());
+
+            List<ScenarioCondition> conditions = scenarioConditionRepository.findByScenario(scenario);
+            List<ScenarioAction> actions = scenarioActionRepository.findByScenario(scenario);
+
+            log.info("  Conditions: {}, Actions: {}", conditions.size(), actions.size());
+
+            boolean conditionsMet = checkScenarioConditions(scenario, sensorStates);
+            log.info("  Conditions met: {}", conditionsMet);
+
+            if (conditionsMet) {
+                log.info("  ✓ Executing actions for scenario: {}", scenario.getName());
+                executeScenarioActions(scenario);
+            }
+        }
+
+        log.info("=== SNAPSHOT PROCESSED ===");
     }
 
     private boolean checkScenarioConditions(Scenario scenario,
@@ -45,8 +65,15 @@ public class SnapshotHandler {
         List<ScenarioCondition> conditions =
                 scenarioConditionRepository.findByScenario(scenario);
 
+        log.debug("Checking {} conditions for scenario: {}",
+                conditions.size(), scenario.getName());
+
         return conditions.stream()
-                .allMatch(condition -> checkCondition(condition, sensorStates));
+                .allMatch(condition -> {
+                    boolean result = checkCondition(condition, sensorStates);
+                    log.debug("  Condition {}: {}", condition.getId(), result ? "PASS" : "FAIL");
+                    return result;
+                });
     }
 
     private boolean checkCondition(ScenarioCondition scenarioCondition,
@@ -56,24 +83,35 @@ public class SnapshotHandler {
         SensorStateAvro sensorState = sensorStates.get(sensorId);
 
         if (sensorState == null) {
-            log.debug("Sensor {} not found in snapshot", sensorId);
+            log.warn("Sensor {} not found in snapshot for hub {}",
+                    sensorId, scenarioCondition.getScenario().getHubId());
             return false;
         }
 
         Integer currentValue = extractSensorValue(condition.getType(), sensorState);
         if (currentValue == null) {
+            log.warn("Could not extract value for sensor {} of type {}",
+                    sensorId, condition.getType());
             return false;
         }
 
-        return checkConditionOperation(condition.getOperation(),
+        boolean result = checkConditionOperation(condition.getOperation(),
                 currentValue, condition.getValue());
+
+        log.debug("  Sensor {}: current={}, target={}, operation={}, result={}",
+                sensorId, currentValue, condition.getValue(),
+                condition.getOperation(), result);
+
+        return result;
     }
 
-    private Integer extractSensorValue(ConditionTypeAvro conditionType, // ИСПРАВЛЕНО: ConditionTypeAvro
+    private Integer extractSensorValue(ConditionTypeAvro conditionType,
                                        SensorStateAvro sensorState) {
         Object data = sensorState.getData();
 
-        // ИСПРАВЛЕНО: используем ConditionTypeAvro напрямую
+        log.debug("Extracting value for type {}: data class = {}",
+                conditionType, data != null ? data.getClass().getSimpleName() : "null");
+
         return switch (conditionType) {
             case MOTION -> {
                 if (data instanceof MotionSensorAvro motion) {
@@ -111,13 +149,15 @@ public class SnapshotHandler {
                 }
                 yield null;
             }
-            default -> null;
+            default -> {
+                log.error("Unknown condition type: {}", conditionType);
+                yield null;
+            }
         };
     }
 
-    private boolean checkConditionOperation(ConditionOperationAvro operation, // ИСПРАВЛЕНО: ConditionOperationAvro
+    private boolean checkConditionOperation(ConditionOperationAvro operation,
                                             Integer currentValue, Integer targetValue) {
-        // ИСПРАВЛЕНО: используем ConditionOperationAvro напрямую
         return switch (operation) {
             case EQUALS -> currentValue.equals(targetValue);
             case GREATER_THAN -> currentValue > targetValue;
@@ -128,11 +168,19 @@ public class SnapshotHandler {
     private void executeScenarioActions(Scenario scenario) {
         List<ScenarioAction> actions = scenarioActionRepository.findByScenario(scenario);
 
+        log.info("Executing {} actions for scenario: {}",
+                actions.size(), scenario.getName());
+
         actions.forEach(scenarioAction -> {
             try {
+                log.info("  Sending action to sensor: {}, type: {}, value: {}",
+                        scenarioAction.getSensor().getId(),
+                        scenarioAction.getAction().getType(),
+                        scenarioAction.getAction().getValue());
+
                 hubRouterClient.sendDeviceRequest(scenarioAction);
-                log.info("Executed action for scenario: {} on sensor: {}",
-                        scenario.getName(), scenarioAction.getSensor().getId());
+
+                log.info("  ✓ Action sent successfully");
             } catch (Exception e) {
                 log.error("Failed to execute action for scenario: {} on sensor: {}",
                         scenario.getName(), scenarioAction.getSensor().getId(), e);
