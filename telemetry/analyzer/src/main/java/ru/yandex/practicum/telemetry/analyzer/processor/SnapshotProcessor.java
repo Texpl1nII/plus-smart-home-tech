@@ -1,6 +1,7 @@
 package ru.yandex.practicum.telemetry.analyzer.processor;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.errors.WakeupException;
@@ -11,16 +12,18 @@ import ru.yandex.practicum.telemetry.analyzer.kafka.KafkaClient;
 import ru.yandex.practicum.telemetry.analyzer.service.SnapshotHandler;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 
+import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.List;
 
 @Slf4j
 @Component
-public class SnapshotProcessor implements Runnable { // ← ДОБАВЬТЕ implements Runnable
+public class SnapshotProcessor implements Runnable {
 
     private final KafkaClient kafkaClient;
     private final SnapshotHandler snapshotHandler;
     private final SensorsSnapshotDeserializer snapshotDeserializer;
+    private Consumer<String, byte[]> snapshotConsumer;
 
     @Value("${analyzer.kafka.topics.snapshots-events}")
     private String snapshotsTopic;
@@ -33,47 +36,90 @@ public class SnapshotProcessor implements Runnable { // ← ДОБАВЬТЕ imp
         this.snapshotDeserializer = snapshotDeserializer;
     }
 
-    @Override  // ← ИМЕННО ЭТОТ МЕТОД ДОЛЖЕН БЫТЬ!
+    @PostConstruct
+    public void init() {
+        this.snapshotConsumer = kafkaClient.getSnapshotConsumer();
+        log.info("SnapshotProcessor initialized with topic: {}", snapshotsTopic);
+        log.info("Snapshot consumer: {}", snapshotConsumer != null ? "OK" : "NULL");
+        log.info("SnapshotHandler: {}", snapshotHandler != null ? "OK" : "NULL");
+    }
+
+    @Override
     public void run() {
-        start();
+        log.info("▶️ SnapshotProcessor thread STARTED");
+        try {
+            start();
+        } catch (Exception e) {
+            log.error("❌ SnapshotProcessor thread crashed", e);
+        }
+        log.info("⏹️ SnapshotProcessor thread STOPPED");
     }
 
     public void start() {
-        var consumer = kafkaClient.getSnapshotConsumer();
+        if (snapshotConsumer == null) {
+            log.error("Snapshot consumer is null! Cannot start SnapshotProcessor.");
+            return;
+        }
 
-        // Добавляем shutdown hook
-        Runtime.getRuntime().addShutdownHook(new Thread(consumer::wakeup));
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("Shutdown hook: waking up snapshot consumer");
+            snapshotConsumer.wakeup();
+        }));
 
         try {
-            consumer.subscribe(List.of(snapshotsTopic));
-            log.info("SnapshotProcessor started, subscribed to topic: {}", snapshotsTopic);
+            snapshotConsumer.subscribe(List.of(snapshotsTopic));
+            log.info("Subscribed to snapshot topic: {}", snapshotsTopic);
+
+            int processedCount = 0;
 
             while (true) {
-                ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(100));
+                ConsumerRecords<String, byte[]> records = snapshotConsumer.poll(Duration.ofMillis(1000));
 
-                for (ConsumerRecord<String, byte[]> record : records) {
-                    try {
-                        SensorsSnapshotAvro snapshot = snapshotDeserializer.deserialize(
-                                record.topic(), record.value());
-                        snapshotHandler.handle(snapshot);
-                        log.debug("Processed snapshot for hub: {}", snapshot.getHubId());
-                    } catch (Exception e) {
-                        log.error("Error processing snapshot: {}", e.getMessage(), e);
+                if (!records.isEmpty()) {
+                    log.info("📥 Received {} snapshot records", records.count());
+
+                    for (ConsumerRecord<String, byte[]> record : records) {
+                        try {
+                            log.debug("Processing snapshot from partition {}, offset {}",
+                                    record.partition(), record.offset());
+
+                            SensorsSnapshotAvro snapshot = snapshotDeserializer.deserialize(
+                                    record.topic(), record.value());
+
+                            if (snapshot != null) {
+                                log.info("Processing snapshot for hub: {} ({} sensors)",
+                                        snapshot.getHubId(),
+                                        snapshot.getSensorsState() != null ?
+                                                snapshot.getSensorsState().size() : 0);
+
+                                snapshotHandler.handle(snapshot);
+                                processedCount++;
+                                log.info("✅ Processed snapshot for hub: {}", snapshot.getHubId());
+                            } else {
+                                log.warn("⚠️ Deserialized snapshot is null");
+                            }
+                        } catch (Exception e) {
+                            log.error("❌ Error processing snapshot: {}", e.getMessage(), e);
+                        }
                     }
-                }
 
-                consumer.commitAsync();
+                    snapshotConsumer.commitAsync();
+                    log.debug("Committed offsets for snapshot consumer");
+                }
             }
         } catch (WakeupException e) {
-            log.info("SnapshotProcessor received wakeup signal");
+            log.info("SnapshotProcessor received wakeup signal, shutting down...");
         } catch (Exception e) {
-            log.error("Error in SnapshotProcessor", e);
+            log.error("Unexpected error in SnapshotProcessor", e);
         } finally {
             try {
-                consumer.commitSync();
+                log.info("Committing final offsets for snapshot consumer");
+                snapshotConsumer.commitSync();
+            } catch (Exception e) {
+                log.error("Error during final commit", e);
             } finally {
-                consumer.close();
-                log.info("SnapshotProcessor stopped");
+                snapshotConsumer.close();
+                log.info("SnapshotProcessor consumer closed");
             }
         }
     }

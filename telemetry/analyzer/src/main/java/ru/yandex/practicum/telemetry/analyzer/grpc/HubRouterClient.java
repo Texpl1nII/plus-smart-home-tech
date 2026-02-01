@@ -14,6 +14,7 @@ import ru.yandex.practicum.telemetry.analyzer.entity.Scenario;
 import ru.yandex.practicum.telemetry.analyzer.entity.ScenarioAction;
 import ru.yandex.practicum.telemetry.analyzer.entity.Sensor;
 
+import javax.annotation.PostConstruct;
 import java.time.Instant;
 
 @Service
@@ -27,26 +28,41 @@ public class HubRouterClient {
         this.hubRouterClient = hubRouterClient;
     }
 
+    @PostConstruct
+    public void init() {
+        log.info("HubRouterClient initialized");
+        log.info("gRPC client is {}null", hubRouterClient == null ? "" : "not ");
+    }
+
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
+        if (scenarioAction == null || scenarioAction.getScenario() == null ||
+                scenarioAction.getSensor() == null || scenarioAction.getAction() == null) {
+            log.error("Cannot send device request: scenarioAction or its components are null");
+            return;
+        }
+
         try {
             DeviceActionRequest deviceActionRequest = toDeviceActionRequest(scenarioAction);
 
-            log.info("Sending gRPC request to hub-router: hubId={}, scenario={}, sensor={}, action={}, value={}",
-                    deviceActionRequest.getHubId(),
-                    deviceActionRequest.getScenarioName(),
-                    deviceActionRequest.getAction().getSensorId(),
-                    deviceActionRequest.getAction().getType(),
-                    deviceActionRequest.getAction().hasValue() ? deviceActionRequest.getAction().getValue() : "null");
+            log.info("🚀 SENDING gRPC REQUEST:");
+            log.info("  Hub: {}", deviceActionRequest.getHubId());
+            log.info("  Scenario: {}", deviceActionRequest.getScenarioName());
+            log.info("  Sensor: {}", deviceActionRequest.getAction().getSensorId());
+            log.info("  Action Type: {}", deviceActionRequest.getAction().getType());
+            log.info("  Action Value: {}", deviceActionRequest.getAction().hasValue() ?
+                    deviceActionRequest.getAction().getValue() : "N/A");
 
+            // Отправляем запрос
             hubRouterClient.handleDeviceAction(deviceActionRequest);
 
-            log.info("✓ Successfully sent device action for scenario: {} to sensor: {}",
+            log.info("✅ SUCCESS: Device action sent for scenario '{}' to sensor '{}'",
                     scenarioAction.getScenario().getName(),
                     scenarioAction.getSensor().getId());
 
         } catch (Exception e) {
-            log.error("❌ Error occurred while sending request for scenario: {}",
-                    scenarioAction.getScenario().getName(), e);
+            log.error("❌ FAILED to send device request for scenario '{}': {}",
+                    scenarioAction.getScenario().getName(),
+                    e.getMessage(), e);
         }
     }
 
