@@ -25,7 +25,7 @@ public class HubEventProcessor implements Runnable {
     private final KafkaClient kafkaClient;
     private final List<HubEventHandler> hubEventHandlers;
     private final HubEventDeserializer hubEventDeserializer;
-    private Consumer<String, byte[]> hubConsumer;
+    private KafkaConsumer<String, HubEventAvro> hubConsumer;
     private final Map<String, HubEventHandler> handlersMap = new HashMap<>();
 
     @Value("${analyzer.kafka.topics.hub-events}")

@@ -23,7 +23,7 @@ public class SnapshotProcessor implements Runnable {
     private final KafkaClient kafkaClient;
     private final SnapshotHandler snapshotHandler;
     private final SensorsSnapshotDeserializer snapshotDeserializer;
-    private Consumer<String, byte[]> snapshotConsumer;
+    private KafkaConsumer<String, SensorsSnapshotAvro> snapshotConsumer;
 
     @Value("${analyzer.kafka.topics.snapshots-events}")
     private String snapshotsTopic;
