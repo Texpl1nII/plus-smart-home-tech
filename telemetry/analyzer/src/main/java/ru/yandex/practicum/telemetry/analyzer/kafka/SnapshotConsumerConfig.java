@@ -18,7 +18,7 @@ import java.util.Properties;
 @ConfigurationProperties("analyzer.kafka.consumer.snapshot")
 public class SnapshotConsumerConfig {
 
-    private String bootstrapServers;
+    private String bootstrapServer;  // ← измените на bootstrapServer (ед.ч.)
     private String groupId;
     private String autoOffsetReset = "earliest";
     private boolean enableAutoCommit;
@@ -31,7 +31,7 @@ public class SnapshotConsumerConfig {
         Properties config = new Properties();
 
         // Проверка обязательных полей
-        if (bootstrapServers == null || bootstrapServers.isEmpty()) {
+        if (bootstrapServer == null || bootstrapServer.isEmpty()) {
             throw new IllegalStateException("bootstrapServer is not configured for snapshot consumer");
         }
         if (groupId == null || groupId.isEmpty()) {
@@ -39,9 +39,9 @@ public class SnapshotConsumerConfig {
         }
 
         log.info("Configuring snapshot Kafka consumer: bootstrapServer={}, groupId={}",
-                bootstrapServers, groupId);
+                bootstrapServer, groupId);
 
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);  // ← используйте bootstrapServer
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);  // ← используйте bootstrapServer
         config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit);
