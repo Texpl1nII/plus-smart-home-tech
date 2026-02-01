@@ -3,14 +3,14 @@ spring:
     name: analyzer
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/hub_router  # ← порт 5433!
+    url: jdbc:postgresql://localhost:5432/hub_router  # или 5433
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: validate  # или update - посмотрите в готовом проекте
+      ddl-auto: update  # или create-drop для тестов
     show-sql: true
     properties:
       hibernate:
