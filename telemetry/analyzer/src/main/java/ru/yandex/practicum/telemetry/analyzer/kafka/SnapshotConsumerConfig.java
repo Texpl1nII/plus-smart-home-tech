@@ -18,40 +18,43 @@ import java.util.Properties;
 @ConfigurationProperties("analyzer.kafka.consumer.snapshot")
 public class SnapshotConsumerConfig {
 
-    private String bootstrapServer;  // ← измените на bootstrapServer (ед.ч.)
+    private String bootstrapServer;
     private String groupId;
-    private String autoOffsetReset = "earliest";
-    private boolean enableAutoCommit;
-    private String keyDeserializer;
-    private String valueDeserializer;
-    private Integer timeOut = 1000;  // ← добавьте timeOut
+    private boolean enableAutoCommit = false;
+    private String keyDeserializer = "org.apache.kafka.common.serialization.StringDeserializer";
+    private String valueDeserializer = "org.apache.kafka.common.serialization.ByteArrayDeserializer";
+    private Integer timeOut = 1000;
 
     @Bean("snapshotKafkaConsumer")
     public KafkaConsumer<String, byte[]> snapshotKafkaConsumer() {
         Properties config = new Properties();
 
-        // Проверка обязательных полей
-        if (bootstrapServer == null || bootstrapServer.isEmpty()) {
-            throw new IllegalStateException("bootstrapServer is not configured for snapshot consumer");
-        }
-        if (groupId == null || groupId.isEmpty()) {
-            throw new IllegalStateException("groupId is not configured for snapshot consumer");
-        }
+        // Всегда используем дефолтные значения для надежности
+        String server = (bootstrapServer != null && !bootstrapServer.isEmpty())
+                ? bootstrapServer
+                : "localhost:9092";
+
+        String group = (groupId != null && !groupId.isEmpty())
+                ? groupId
+                : "snapshot.analyzer";
 
         log.info("Configuring snapshot Kafka consumer: bootstrapServer={}, groupId={}",
-                bootstrapServer, groupId);
+                server, group);
 
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);  // ← используйте bootstrapServer
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, server);
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, group);
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer);
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        // Дополнительные настройки
+        // Дополнительные настройки для надежности
         config.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
         config.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 300000);
         config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 10000);
+        config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 3000);
+        config.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1);
+        config.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
 
         return new KafkaConsumer<>(config);
     }
