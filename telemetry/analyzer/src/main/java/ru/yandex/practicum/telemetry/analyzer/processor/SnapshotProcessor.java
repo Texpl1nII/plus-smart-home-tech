@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class SnapshotProcessor {
+public class SnapshotProcessor implements Runnable { // <- Добавляем Runnable
 
     private final KafkaClient kafkaClient;
     private final SnapshotHandler snapshotHandler;
@@ -33,6 +33,11 @@ public class SnapshotProcessor {
         this.snapshotDeserializer = snapshotDeserializer;
     }
 
+    @Override // <- Добавляем метод run()
+    public void run() {
+        start();
+    }
+
     public void start() {
         var consumer = kafkaClient.getSnapshotConsumer();
 
@@ -43,7 +48,7 @@ public class SnapshotProcessor {
             consumer.subscribe(List.of(snapshotsTopic));
             log.info("SnapshotProcessor started, subscribed to topic: {}", snapshotsTopic);
 
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) { // <- Проверяем прерывание
                 ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(100));
 
                 for (ConsumerRecord<String, byte[]> record : records) {

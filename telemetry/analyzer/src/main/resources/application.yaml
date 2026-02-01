@@ -15,6 +15,11 @@ spring:
 
 analyzer:
   kafka:
+    # ← ДОБАВЬТЕ ЭТОТ БЛОК (названия топиков):
+    topics:
+      hub-events: hub-events            # для событий от хабов
+      snapshots-events: snapshots       # для снапшотов состояний
+
     consumer:
       hub:
         bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -22,14 +27,14 @@ analyzer:
         value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
         group-id: events.analyzer
         enable-auto-commit: false
-        auto-offset-reset: earliest  # ← ДОБАВЬТЕ ЭТУ СТРОКУ!
+        auto-offset-reset: earliest      # ← Уже есть, хорошо!
       snapshot:
         bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
         group-id: snapshot.analyzer
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
         enable-auto-commit: false
-        auto-offset-reset: earliest
+        auto-offset-reset: earliest      # ← Уже есть, хорошо!
 
 grpc:
   client:
