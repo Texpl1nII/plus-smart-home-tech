@@ -7,19 +7,14 @@ spring:
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
-    hikari:
-      connection-timeout: 30000
-      maximum-pool-size: 5
 
   jpa:
     hibernate:
-      ddl-auto: create-drop  # для тестов
-    show-sql: false
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    open-in-view: false
 
 grpc:
   client:
@@ -34,32 +29,18 @@ analyzer:
     consumer:
       hub:
         bootstrap-server: localhost:9092
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: ru.yandex.practicum.deserializer.HubEventDeserializer
         group-id: events.analyzer
         enable-auto-commit: false
-        auto-offset-reset: earliest
-        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
         time-out: 1000
       snapshot:
         bootstrap-server: localhost:9092
         group-id: snapshot.analyzer
-        enable-auto-commit: false
-        auto-offset-reset: earliest
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
-        time-out: 1000
+        value-deserializer: ru.yandex.practicum.deserializer.SensorsSnapshotDeserializer
+        enable-auto-commit: false
+        time-out: 500
     topics:
       hub-events: telemetry.hubs.v1
       snapshots-events: telemetry.snapshots.v1
-
-logging:
-  level:
-    ru.yandex.practicum.telemetry.analyzer: INFO
-    ru.yandex.practicum.telemetry.analyzer.processor: INFO
-    ru.yandex.practicum.telemetry.analyzer.service: INFO
-    ru.yandex.practicum.telemetry.analyzer.handler: INFO
-    ru.yandex.practicum.telemetry.analyzer.grpc: INFO
-    ru.yandex.practicum.telemetry.analyzer.kafka: INFO
-    org.springframework.kafka: WARN
-    org.apache.kafka: WARN
-    org.hibernate: WARN
