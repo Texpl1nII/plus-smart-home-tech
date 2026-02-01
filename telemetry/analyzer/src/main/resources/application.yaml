@@ -3,18 +3,49 @@ spring:
     name: analyzer
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/hub_router
+    url: jdbc:postgresql://localhost:5433/hub_router  # ← проверьте порт! 5432 или 5433?
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 5
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop  # для тестов можно оставить
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+    open-in-view: false
+
+analyzer:
+  kafka:
+    topics:
+      hub-events: telemetry.hubs.v1
+      snapshots-events: telemetry.snapshots.v1
+
+    consumer:
+      hub:
+        bootstrap-server: localhost:9092  # ← правильно!
+        group-id: events.analyzer
+        enable-auto-commit: false
+        auto-offset-reset: earliest
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+        time-out: 1000  # ← добавьте!
+      # УДАЛИТЕ snapshot конфиг если нет SnapshotConsumerConfig
+      # snapshot:
+      #   bootstrap-server: localhost:9092
+      #   group-id: snapshot.analyzer
+      #   enable-auto-commit: false
+      #   auto-offset-reset: earliest
+      #   key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      #   value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
 
 grpc:
   client:
@@ -24,23 +55,9 @@ grpc:
       keepAliveWithoutCalls: true
       negotiationType: plaintext
 
-analyzer:
-  kafka:
-    consumer:
-      hub:
-        bootstrap-server: localhost:9092
-        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: ru.yandex.practicum.deserializer.HubEventDeserializer
-        group-id: events.analyzer
-        enable-auto-commit: false
-        time-out: 1000
-      snapshot:
-        bootstrap-server: localhost:9092
-        group-id: snapshot.analyzer
-        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: ru.yandex.practicum.deserializer.SensorsSnapshotDeserializer
-        enable-auto-commit: false
-        time-out: 500
-    topics:
-      hub-events: telemetry.hubs.v1
-      snapshots-events: telemetry.snapshots.v1
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.transaction: DEBUG
+    ru.yandex.practicum.telemetry: INFO
