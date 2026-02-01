@@ -25,19 +25,23 @@ spring:
 
 analyzer:
   kafka:
-    bootstrap-servers: localhost:9092  # ← оставляем для общего использования
+    # УДАЛИТЕ эту строку или переместите:
+    # bootstrap-servers: localhost:9092  ← УДАЛИТЬ!
+
     topics:
       hub-events: telemetry.hubs.v1
       snapshots-events: telemetry.snapshots.v1
+
     consumer:
       hub:
-        bootstrap-server: localhost:9092  # ← ЭТУ СТРОКУ ДОБАВЬТЕ (именно так, как ожидает Java-класс)
+        bootstrap-server: localhost:9092  # ← ДОБАВЬТЕ ЭТУ СТРОКУ!
         group-id: events.analyzer
         enable-auto-commit: false
         auto-offset-reset: earliest
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
       snapshot:
+        bootstrap-server: localhost:9092  # ← тоже добавьте
         group-id: snapshot.analyzer
         enable-auto-commit: false
         auto-offset-reset: earliest
