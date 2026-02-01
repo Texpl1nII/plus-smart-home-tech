@@ -3,53 +3,49 @@ spring:
     name: analyzer
 
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/hub_router}  # порт 5432 вместо 5433
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    url: jdbc:postgresql://localhost:5432/hub_router
+    username: postgres
+    password: postgres
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false  # временно отключите для чистоты логов
 
 analyzer:
   kafka:
     topics:
-      hub-events: telemetry.hubs.v1          # ← КОРРЕКТНЫЕ названия топиков!
-      snapshots-events: telemetry.snapshots.v1 # ← КОРРЕКТНЫЕ названия топиков!
+      hub-events: telemetry.hubs.v1
+      snapshots-events: telemetry.snapshots.v1
 
     consumer:
       hub:
-        bootstrap-server: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}  # ← bootstrap-server (не servers!)
-        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer  # ← ByteArray!
+        bootstrap-server: localhost:9092
         group-id: events.analyzer
         enable-auto-commit: false
-        time-out: 1000  # ← время ожидания
-      snapshot:
-        bootstrap-server: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}  # ← bootstrap-server (не servers!)
-        group-id: snapshot.analyzer
+        auto-offset-reset: earliest
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer  # ← ByteArray!
+        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      snapshot:
+        bootstrap-server: localhost:9092
+        group-id: snapshot.analyzer
         enable-auto-commit: false
-        time-out: 1000  # ← время ожидания
+        auto-offset-reset: earliest
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
 
 grpc:
   client:
     hub-router:
-      address: ${GRPC_SERVER_ADDRESS:static://localhost:59090}
+      address: 'static://localhost:59090'
       enableKeepAlive: true
       keepAliveWithoutCalls: true
       negotiationType: plaintext
 
-# Добавьте логирование для отладки
 logging:
   level:
-    ru.yandex.practicum.telemetry.analyzer: INFO
-    org.springframework.kafka: WARN
-    org.apache.kafka: WARN
-  file:
-    name: ./logs/analyzer.log
+    root: INFO
+    ru.yandex.practicum.telemetry: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    console: "%msg%n"

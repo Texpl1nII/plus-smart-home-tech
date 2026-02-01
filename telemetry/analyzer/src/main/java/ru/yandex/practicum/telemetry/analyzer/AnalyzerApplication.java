@@ -14,6 +14,14 @@ import ru.yandex.practicum.telemetry.analyzer.processor.SnapshotProcessor;
 @ConfigurationPropertiesScan
 public class AnalyzerApplication {
     public static void main(String[] args) {
+
+        System.out.println("=== CI DEBUG ===");
+        System.out.println("Java version: " + System.getProperty("java.version"));
+        System.out.println("Working dir: " + System.getProperty("user.dir"));
+        System.out.println("Kafka servers: " + System.getenv("KAFKA_BOOTSTRAP_SERVERS"));
+        System.out.println("Database URL: " + System.getenv("DATABASE_URL"));
+        System.out.println("=== END CI DEBUG ===");
+
         log.info("Starting AnalyzerApplication...");
 
         ConfigurableApplicationContext context = SpringApplication.run(AnalyzerApplication.class, args);
@@ -59,7 +67,6 @@ public class AnalyzerApplication {
         snapshotThread.start();
         log.info("Snapshot processor started");
 
-        // Ждем немного чтобы убедиться, что потоки запустились
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
