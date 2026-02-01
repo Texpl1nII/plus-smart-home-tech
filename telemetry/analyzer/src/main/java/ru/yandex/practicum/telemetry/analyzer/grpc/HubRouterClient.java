@@ -30,14 +30,22 @@ public class HubRouterClient {
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
         try {
             DeviceActionRequest deviceActionRequest = toDeviceActionRequest(scenarioAction);
+
+            log.info("Sending gRPC request to hub-router: hubId={}, scenario={}, sensor={}, action={}, value={}",
+                    deviceActionRequest.getHubId(),
+                    deviceActionRequest.getScenarioName(),
+                    deviceActionRequest.getAction().getSensorId(),
+                    deviceActionRequest.getAction().getType(),
+                    deviceActionRequest.getAction().hasValue() ? deviceActionRequest.getAction().getValue() : "null");
+
             hubRouterClient.handleDeviceAction(deviceActionRequest);
 
-            log.debug("Sent device action for scenario: {} to sensor: {}",
+            log.info("✓ Successfully sent device action for scenario: {} to sensor: {}",
                     scenarioAction.getScenario().getName(),
                     scenarioAction.getSensor().getId());
 
         } catch (Exception e) {
-            log.error("Error occurred while sending request for scenario: {}",
+            log.error("❌ Error occurred while sending request for scenario: {}",
                     scenarioAction.getScenario().getName(), e);
         }
     }
@@ -48,7 +56,10 @@ public class HubRouterClient {
             case DEACTIVATE -> ActionTypeProto.DEACTIVATE;
             case INVERSE -> ActionTypeProto.INVERSE;
             case SET_VALUE -> ActionTypeProto.SET_VALUE;
-            default -> throw new IllegalArgumentException("Unknown action type: " + actionType);
+            default -> {
+                log.error("Unknown action type: {}", actionType);
+                throw new IllegalArgumentException("Unknown action type: " + actionType);
+            }
         };
     }
 
@@ -57,15 +68,21 @@ public class HubRouterClient {
         Sensor sensor = scenarioAction.getSensor();
         Action action = scenarioAction.getAction();
 
-        // ВАЖНО: value должен быть int, а не String!
+        // Строим DeviceActionProto
+        DeviceActionProto.Builder actionBuilder = DeviceActionProto.newBuilder()
+                .setSensorId(sensor.getId())
+                .setType(toActionTypeProto(action.getType()));
+
+        // Устанавливаем value только если оно есть (optional в proto)
+        if (action.getValue() != null) {
+            actionBuilder.setValue(action.getValue());
+        }
+
+        // Строим DeviceActionRequest
         return DeviceActionRequest.newBuilder()
                 .setHubId(scenario.getHubId())
                 .setScenarioName(scenario.getName())
-                .setAction(DeviceActionProto.newBuilder()
-                        .setSensorId(sensor.getId())
-                        .setType(toActionTypeProto(action.getType()))
-                        .setValue(action.getValue()) // int, а не String!
-                        .build())
+                .setAction(actionBuilder.build())
                 .setTimestamp(currentTimestamp())
                 .build();
     }
