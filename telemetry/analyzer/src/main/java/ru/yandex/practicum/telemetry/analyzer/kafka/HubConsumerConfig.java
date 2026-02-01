@@ -18,30 +18,28 @@ import java.util.Properties;
 @ConfigurationProperties("analyzer.kafka.consumer.hub")
 public class HubConsumerConfig {
 
-    private String bootstrapServer;  // ← измените на bootstrapServer (ед.ч.)
+    private String bootstrapServers; // ← ИЗМЕНИТЕ на bootstrapServers (мн.ч.)
     private String groupId;
-    private String autoOffsetReset = "earliest";  // ← значение по умолчанию
+    private String autoOffsetReset = "earliest";
     private boolean enableAutoCommit;
     private String keyDeserializer;
     private String valueDeserializer;
-    private Integer timeOut = 1000;  // ← добавьте timeOut
 
     @Bean("hubKafkaConsumer")
     public KafkaConsumer<String, byte[]> hubKafkaConsumer() {
         Properties config = new Properties();
 
-        // Проверка обязательных полей
-        if (bootstrapServer == null || bootstrapServer.isEmpty()) {
-            throw new IllegalStateException("bootstrapServer is not configured for hub consumer");
-        }
-        if (groupId == null || groupId.isEmpty()) {
-            throw new IllegalStateException("groupId is not configured for hub consumer");
+        // Используйте ИЛИ переменную окружения ИЛИ значение из конфигурации
+        String servers = System.getenv("KAFKA_BOOTSTRAP_SERVERS");
+        if (servers == null || servers.isEmpty()) {
+            servers = bootstrapServers; // из конфигурации
         }
 
-        log.info("Configuring hub Kafka consumer: bootstrapServer={}, groupId={}",
-                bootstrapServer, groupId);
+        if (servers == null || servers.isEmpty()) {
+            throw new IllegalStateException("Kafka bootstrap servers not configured!");
+        }
 
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);  // ← используйте bootstrapServer
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);  // ← используйте bootstrapServer
         config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit);

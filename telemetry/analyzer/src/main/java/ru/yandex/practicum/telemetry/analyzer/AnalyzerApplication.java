@@ -14,6 +14,10 @@ import ru.yandex.practicum.telemetry.analyzer.processor.SnapshotProcessor;
 @ConfigurationPropertiesScan
 public class AnalyzerApplication {
     public static void main(String[] args) {
+        System.out.println("=== KAFKA CONFIG CHECK ===");
+        System.out.println("KAFKA_BOOTSTRAP_SERVERS env: " + System.getenv("KAFKA_BOOTSTRAP_SERVERS"));
+        System.out.println("Property analyzer.kafka.bootstrap-servers: " +
+                System.getProperty("analyzer.kafka.bootstrap-servers"));
 
         System.out.println("=== CI DEBUG ===");
         System.out.println("Java version: " + System.getProperty("java.version"));

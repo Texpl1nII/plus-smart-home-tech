@@ -11,24 +11,24 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false  # временно отключите для чистоты логов
+    show-sql: false
 
 analyzer:
   kafka:
+    bootstrap-servers: localhost:9092
+
     topics:
       hub-events: telemetry.hubs.v1
       snapshots-events: telemetry.snapshots.v1
 
     consumer:
       hub:
-        bootstrap-server: localhost:9092
         group-id: events.analyzer
         enable-auto-commit: false
         auto-offset-reset: earliest
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
       snapshot:
-        bootstrap-server: localhost:9092
         group-id: snapshot.analyzer
         enable-auto-commit: false
         auto-offset-reset: earliest
