@@ -15,7 +15,7 @@ import java.util.Set;
 @Builder
 public class Sensor {
 
-    @Id
+    @Id  // ← КРИТИЧНО!
     @Column(name = "id")
     private String id;
 
