@@ -8,6 +8,7 @@ import ru.yandex.practicum.telemetry.analyzer.handler.HubEventHandler;
 import ru.yandex.practicum.telemetry.analyzer.model.*;
 import ru.yandex.practicum.telemetry.analyzer.repository.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -41,8 +42,7 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
         // ВРЕМЕННО отключаем проверку сенсоров - это основная проблема!
         log.warn("⚠️ TEMPORARY: Skipping sensor existence check!");
 
-        /*
-        // Закомментируйте этот блок ВРЕМЕННО
+
         List<String> conditionSensorIds = scenarioAddedEventAvro.getConditions().stream()
                 .map(ScenarioConditionAvro::getSensorId)
                 .toList();
@@ -62,7 +62,7 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                     conditionSensorIds, actionSensorIds);
             throw new IllegalArgumentException("Устройства не найдены");
         }
-        */
+        
 
         Optional<Scenario> existingScenario = scenarioRepository.findByHubIdAndName(
                 event.getHubId(), scenarioAddedEventAvro.getName());
