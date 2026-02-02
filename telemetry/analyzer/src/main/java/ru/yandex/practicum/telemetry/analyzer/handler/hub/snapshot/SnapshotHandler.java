@@ -28,9 +28,22 @@ public class SnapshotHandler {
 
     @Transactional(readOnly = true)
     public void handle(SensorsSnapshotAvro sensorsSnapshotAvro) {
-        log.info("📸 Snapshot received: hub={}, sensors={}",
+        log.info("=== DEBUG SNAPSHOT HANDLER START ===");
+
+        // Детальное логирование ВСЕХ данных
+        log.info("📸 Snapshot received: hub={}, sensorsCount={}",
                 sensorsSnapshotAvro.getHubId(),
                 sensorsSnapshotAvro.getSensorsState().size());
+
+        // Логируем КАЖДЫЙ сенсор
+        sensorsSnapshotAvro.getSensorsState().forEach((sensorId, state) -> {
+            Object data = state.getData();
+            log.info("Sensor {}: timestamp={}, dataType={}, data={}",
+                    sensorId,
+                    state.getTimestamp(),
+                    data.getClass().getSimpleName(),
+                    data.toString());
+        });
 
         Map<String, SensorStateAvro> sensorStateMap = sensorsSnapshotAvro.getSensorsState();
         List<Scenario> scenariosList = scenarioRepository.findByHubId(sensorsSnapshotAvro.getHubId());
@@ -38,12 +51,17 @@ public class SnapshotHandler {
         log.info("Found {} scenarios for hub {}", scenariosList.size(), sensorsSnapshotAvro.getHubId());
 
         for (Scenario scenario : scenariosList) {
+            log.info("🔍 Checking scenario: {} (hub: {})", scenario.getName(), scenario.getHubId());
             boolean shouldExecute = checkAllConditions(scenario, sensorStateMap);
             if (shouldExecute) {
-                log.info("✅ Executing scenario: {}", scenario.getName());
+                log.info("✅✅✅ ALL CONDITIONS MET! Executing scenario: {}", scenario.getName());
                 executeScenarioActions(scenario);
+            } else {
+                log.info("❌ Some conditions not met for scenario: {}", scenario.getName());
             }
         }
+
+        log.info("=== DEBUG SNAPSHOT HANDLER END ===");
     }
 
     private boolean checkAllConditions(Scenario scenario, Map<String, SensorStateAvro> sensorStateMap) {
@@ -61,72 +79,110 @@ public class SnapshotHandler {
 
     private boolean checkSingleCondition(Condition condition, String sensorId,
                                          Map<String, SensorStateAvro> sensorStateMap) {
+        log.info("Checking condition: sensor={}, type={}, operation={}, value={}",
+                sensorId, condition.getType(), condition.getOperation(), condition.getValue());
+
         SensorStateAvro sensorState = sensorStateMap.get(sensorId);
         if (sensorState == null) {
-            log.warn("Sensor {} not found in snapshot", sensorId);
+            log.warn("❌ Sensor {} not found in snapshot", sensorId);
             return false;
         }
 
         Integer currentValue = extractValue(sensorState, condition.getType());
         if (currentValue == null) {
+            log.warn("❌ Could not extract value for sensor {} with type {}",
+                    sensorId, condition.getType());
             return false;
         }
 
-        return evaluateCondition(condition, currentValue);
+        boolean result = evaluateCondition(condition, currentValue);
+        log.info("Condition result: {} (current={}, target={})",
+                result ? "PASS" : "FAIL", currentValue, condition.getValue());
+
+        return result;
     }
 
     private Integer extractValue(SensorStateAvro sensorState, ConditionTypeAvro type) {
-        try {
-            Object data = sensorState.getData();
-            log.debug("Extracting value for type {} from data type: {}",
-                    type, data.getClass().getSimpleName());
+        Object data = sensorState.getData();
 
+        try {
             return switch (type) {
                 case MOTION -> {
-                    MotionSensorAvro motion = (MotionSensorAvro) data;
-                    int value = motion.getMotion() ? 1 : 0;
-                    log.debug("Motion value: {} -> {}", motion.getMotion(), value);
-                    yield value;
+                    if (data instanceof MotionSensorAvro) {
+                        MotionSensorAvro motion = (MotionSensorAvro) data;
+                        yield motion.getMotion() ? 1 : 0;
+                    }
+                    log.error("Type mismatch for MOTION: expected MotionSensorAvro, got {}",
+                            data.getClass().getSimpleName());
+                    yield null;
                 }
                 case LUMINOSITY -> {
-                    LightSensorAvro light = (LightSensorAvro) data;
-                    log.debug("Luminosity value: {}", light.getLuminosity());
-                    yield light.getLuminosity();
+                    if (data instanceof LightSensorAvro) {
+                        LightSensorAvro light = (LightSensorAvro) data;
+                        yield light.getLuminosity();
+                    }
+                    log.error("Type mismatch for LUMINOSITY: expected LightSensorAvro, got {}",
+                            data.getClass().getSimpleName());
+                    yield null;
                 }
                 case SWITCH -> {
-                    SwitchSensorAvro sw = (SwitchSensorAvro) data;
-                    int value = sw.getState() ? 1 : 0;
-                    log.debug("Switch value: {} -> {}", sw.getState(), value);
-                    yield value;
+                    if (data instanceof SwitchSensorAvro) {
+                        SwitchSensorAvro sw = (SwitchSensorAvro) data;
+                        yield sw.getState() ? 1 : 0;
+                    }
+                    log.error("Type mismatch for SWITCH: expected SwitchSensorAvro, got {}",
+                            data.getClass().getSimpleName());
+                    yield null;
                 }
                 case TEMPERATURE -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
-                    log.debug("Temperature value: {}", climate.getTemperatureC());
-                    yield climate.getTemperatureC();
+                    // ← ВАЖНО: Может быть ДВА типа данных!
+                    if (data instanceof ClimateSensorAvro) {
+                        ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                        yield climate.getTemperatureC();
+                    } else if (data instanceof TemperatureSensorAvro) {
+                        TemperatureSensorAvro temp = (TemperatureSensorAvro) data;
+                        yield temp.getTemperatureC();
+                    } else {
+                        log.error("Type mismatch for TEMPERATURE: expected ClimateSensorAvro or TemperatureSensorAvro, got {}",
+                                data.getClass().getSimpleName());
+                        yield null;
+                    }
                 }
                 case CO2LEVEL -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
-                    log.debug("CO2 level: {}", climate.getCo2Level());
-                    yield climate.getCo2Level();
+                    if (data instanceof ClimateSensorAvro) {
+                        ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                        yield climate.getCo2Level();
+                    }
+                    log.error("Type mismatch for CO2LEVEL: expected ClimateSensorAvro, got {}",
+                            data.getClass().getSimpleName());
+                    yield null;
                 }
                 case HUMIDITY -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
-                    log.debug("Humidity: {}", climate.getHumidity());
-                    yield climate.getHumidity();
+                    if (data instanceof ClimateSensorAvro) {
+                        ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                        yield climate.getHumidity();
+                    }
+                    log.error("Type mismatch for HUMIDITY: expected ClimateSensorAvro, got {}",
+                            data.getClass().getSimpleName());
+                    yield null;
                 }
             };
-        } catch (ClassCastException e) {
-            log.error("❌ Type mismatch! Condition type: {}, Data type: {}",
-                    type, sensorState.getData().getClass().getSimpleName(), e);
-            return null;
         } catch (Exception e) {
-            log.error("Error extracting value for type {}", type, e);
+            log.error("Error extracting value for type {}: {}", type, e.getMessage(), e);
             return null;
         }
     }
 
     private boolean evaluateCondition(Condition condition, Integer currentValue) {
         Integer targetValue = condition.getValue();
+
+        if (currentValue == null || targetValue == null) {
+            log.warn("Cannot evaluate condition with null values: current={}, target={}",
+                    currentValue, targetValue);
+            return false;
+        }
+
+        log.info("Evaluating: {} {} {}", currentValue, condition.getOperation(), targetValue);
 
         return switch (condition.getOperation()) {
             case EQUALS -> currentValue.equals(targetValue);
