@@ -19,7 +19,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SnapshotHandler {
+public class SnapshotEventHandler {
 
     private final ScenarioRepository scenarioRepository;
     private final ScenarioConditionRepository scenarioConditionRepository;
