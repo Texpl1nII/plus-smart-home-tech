@@ -8,7 +8,6 @@ import ru.yandex.practicum.telemetry.analyzer.handler.HubEventHandler;
 import ru.yandex.practicum.telemetry.analyzer.model.*;
 import ru.yandex.practicum.telemetry.analyzer.repository.*;
 
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -39,31 +38,7 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                 scenarioAddedEventAvro.getConditions().size(),
                 scenarioAddedEventAvro.getActions().size());
 
-        // ВРЕМЕННО отключаем проверку сенсоров - это основная проблема!
-        log.warn("⚠️ TEMPORARY: Skipping sensor existence check!");
-
-
-        List<String> conditionSensorIds = scenarioAddedEventAvro.getConditions().stream()
-                .map(ScenarioConditionAvro::getSensorId)
-                .toList();
-        List<String> actionSensorIds = scenarioAddedEventAvro.getActions().stream()
-                .map(DeviceActionAvro::getSensorId)
-                .toList();
-
-        // Проверяем какие сенсоры существуют
-        boolean allConditionSensorsExist = sensorRepository.existsByIdInAndHubId(conditionSensorIds, event.getHubId());
-        boolean allActionSensorsExist = sensorRepository.existsByIdInAndHubId(actionSensorIds, event.getHubId());
-
-        log.info("All condition sensors exist: {}", allConditionSensorsExist);
-        log.info("All action sensors exist: {}", allActionSensorsExist);
-
-        if (!allConditionSensorsExist || !allActionSensorsExist) {
-            log.error("❌ Some sensors not found. Condition sensors: {}, Action sensors: {}",
-                    conditionSensorIds, actionSensorIds);
-            throw new IllegalArgumentException("Устройства не найдены");
-        }
-        
-
+        // Проверяем существование сценария
         Optional<Scenario> existingScenario = scenarioRepository.findByHubIdAndName(
                 event.getHubId(), scenarioAddedEventAvro.getName());
 
@@ -98,29 +73,38 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
         log.info("Saving {} conditions...", avro.getConditions().size());
 
         for (ScenarioConditionAvro conditionAvro : avro.getConditions()) {
-            // ВРЕМЕННО: если сенсор не найден, создаем его!
-            Sensor sensor = sensorRepository.findById(conditionAvro.getSensorId())
-                    .orElseGet(() -> {
-                        log.warn("⚠️ Sensor {} not found, creating it...", conditionAvro.getSensorId());
-                        Sensor newSensor = Sensor.builder()
-                                .id(conditionAvro.getSensorId())
-                                .hubId(event.getHubId())
-                                .build();
-                        return sensorRepository.save(newSensor);
-                    });
+            // Ищем сенсор
+            Sensor sensor = sensorRepository.findByIdAndHubId(
+                            conditionAvro.getSensorId(), event.getHubId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Sensor not found: " + conditionAvro.getSensorId() +
+                                    " for hub: " + event.getHubId()));
 
-            Integer value = asInteger(conditionAvro.getValue());
-            log.info("Saving condition: sensor={}, type={}, operation={}, value={} (converted: {})",
-                    sensor.getId(),
-                    conditionAvro.getType(),
-                    conditionAvro.getOperation(),
-                    conditionAvro.getValue(),
-                    value);
+            Integer value = extractConditionValue(conditionAvro.getValue());
+
+            // КРИТИЧНО: преобразуем тип если нужно
+            ConditionTypeAvro typeAvro;
+            ConditionOperationAvro operationAvro;
+
+            try {
+                // Пробуем напрямую - если это уже Avro enum
+                typeAvro = (ConditionTypeAvro) conditionAvro.getType();
+                operationAvro = (ConditionOperationAvro) conditionAvro.getOperation();
+                log.debug("Direct cast to Avro enums successful");
+            } catch (ClassCastException e) {
+                // Если не получается, преобразуем через строку
+                log.warn("ClassCastException, converting via string...");
+                typeAvro = convertToConditionTypeAvro(conditionAvro.getType());
+                operationAvro = convertToConditionOperationAvro(conditionAvro.getOperation());
+            }
+
+            log.info("Saving condition: sensor={}, type={}, operation={}, value={}",
+                    sensor.getId(), typeAvro, operationAvro, value);
 
             Condition condition = conditionRepository.save(
                     Condition.builder()
-                            .type(conditionAvro.getType())
-                            .operation(conditionAvro.getOperation())
+                            .type(typeAvro)
+                            .operation(operationAvro)
                             .value(value)
                             .build()
             );
@@ -142,29 +126,64 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
         }
     }
 
+    private ConditionTypeAvro convertToConditionTypeAvro(Object type) {
+        String typeStr = type.toString();
+        try {
+            return ConditionTypeAvro.valueOf(typeStr);
+        } catch (IllegalArgumentException e) {
+            log.error("Cannot convert to ConditionTypeAvro: {}", typeStr);
+            // Маппинг для protobuf -> avro
+            return switch (typeStr) {
+                case "MOTION" -> ConditionTypeAvro.MOTION;
+                case "LUMINOSITY" -> ConditionTypeAvro.LUMINOSITY;
+                case "SWITCH" -> ConditionTypeAvro.SWITCH;
+                case "TEMPERATURE" -> ConditionTypeAvro.TEMPERATURE;
+                case "CO2LEVEL" -> ConditionTypeAvro.CO2LEVEL;
+                case "HUMIDITY" -> ConditionTypeAvro.HUMIDITY;
+                default -> throw new IllegalArgumentException("Unknown type: " + typeStr);
+            };
+        }
+    }
+
+    private ConditionOperationAvro convertToConditionOperationAvro(Object operation) {
+        String opStr = operation.toString();
+        try {
+            return ConditionOperationAvro.valueOf(opStr);
+        } catch (IllegalArgumentException e) {
+            log.error("Cannot convert to ConditionOperationAvro: {}", opStr);
+            return switch (opStr) {
+                case "EQUALS" -> ConditionOperationAvro.EQUALS;
+                case "GREATER_THAN" -> ConditionOperationAvro.GREATER_THAN;
+                case "LOWER_THAN" -> ConditionOperationAvro.LOWER_THAN;
+                default -> throw new IllegalArgumentException("Unknown operation: " + opStr);
+            };
+        }
+    }
+
     private void saveActions(Scenario scenario, HubEventAvro event, ScenarioAddedEventAvro avro) {
         log.info("Saving {} actions...", avro.getActions().size());
 
         for (DeviceActionAvro actionAvro : avro.getActions()) {
-            // ВРЕМЕННО: если сенсор не найден, создаем его!
-            Sensor sensor = sensorRepository.findById(actionAvro.getSensorId())
-                    .orElseGet(() -> {
-                        log.warn("⚠️ Sensor {} not found, creating it...", actionAvro.getSensorId());
-                        Sensor newSensor = Sensor.builder()
-                                .id(actionAvro.getSensorId())
-                                .hubId(event.getHubId())
-                                .build();
-                        return sensorRepository.save(newSensor);
-                    });
+            // Ищем сенсор
+            Sensor sensor = sensorRepository.findByIdAndHubId(
+                            actionAvro.getSensorId(), event.getHubId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Sensor not found: " + actionAvro.getSensorId() +
+                                    " for hub: " + event.getHubId()));
+
+            ActionTypeAvro typeAvro;
+            try {
+                typeAvro = (ActionTypeAvro) actionAvro.getType();
+            } catch (ClassCastException e) {
+                typeAvro = convertToActionTypeAvro(actionAvro.getType());
+            }
 
             log.info("Saving action: sensor={}, type={}, value={}",
-                    sensor.getId(),
-                    actionAvro.getType(),
-                    actionAvro.getValue());
+                    sensor.getId(), typeAvro, actionAvro.getValue());
 
             Action action = actionRepository.save(
                     Action.builder()
-                            .type(actionAvro.getType())
+                            .type(typeAvro)
                             .value(actionAvro.getValue())
                             .build()
             );
@@ -186,9 +205,23 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
         }
     }
 
-    private Integer asInteger(Object value) {
+    private ActionTypeAvro convertToActionTypeAvro(Object type) {
+        String typeStr = type.toString();
+        try {
+            return ActionTypeAvro.valueOf(typeStr);
+        } catch (IllegalArgumentException e) {
+            return switch (typeStr) {
+                case "ACTIVATE" -> ActionTypeAvro.ACTIVATE;
+                case "DEACTIVATE" -> ActionTypeAvro.DEACTIVATE;
+                case "INVERSE" -> ActionTypeAvro.INVERSE;
+                case "SET_VALUE" -> ActionTypeAvro.SET_VALUE;
+                default -> throw new IllegalArgumentException("Unknown action type: " + typeStr);
+            };
+        }
+    }
+
+    private Integer extractConditionValue(Object value) {
         if (value == null) {
-            log.warn("Value is null in asInteger, returning 0");
             return 0;
         }
 
@@ -202,7 +235,6 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
             } else if (value instanceof Number) {
                 return ((Number) value).intValue();
             } else {
-                // Пробуем преобразовать строку
                 String strVal = value.toString().toLowerCase();
                 if (strVal.equals("true") || strVal.equals("1")) {
                     return 1;
@@ -215,7 +247,7 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
         } catch (Exception e) {
             log.error("Cannot convert value to Integer: {} (type: {})",
                     value, value.getClass().getName(), e);
-            return 0; // Возвращаем 0 вместо исключения
+            return 0;
         }
     }
 }
