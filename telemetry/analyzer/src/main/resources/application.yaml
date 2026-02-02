@@ -31,7 +31,7 @@ analyzer:
       hub:
         bootstrap-server: localhost:9092
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: ru.yandex.practicum.deserializer.HubEventDeserializer
+        value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.HubEventDeserializer  # ← ИСПРАВЬТЕ package!
         group-id: events.analyzer
         enable-auto-commit: false
         time-out: 1000
@@ -39,7 +39,7 @@ analyzer:
         bootstrap-server: localhost:9092
         group-id: snapshot.analyzer
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: ru.yandex.practicum.deserializer.SensorsSnapshotDeserializer
+        value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.SensorsSnapshotDeserializer  # ← ИСПРАВЬТЕ package!
         enable-auto-commit: false
         time-out: 500
     topics:
