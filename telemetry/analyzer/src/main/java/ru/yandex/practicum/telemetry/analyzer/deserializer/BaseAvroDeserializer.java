@@ -1,6 +1,5 @@
 package ru.yandex.practicum.telemetry.analyzer.deserializer;
 
-
 import org.apache.avro.Schema;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
