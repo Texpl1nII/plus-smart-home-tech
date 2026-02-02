@@ -1,17 +1,17 @@
-package ru.yandex.practicum.telemetry.analyzer.service;
+package ru.yandex.practicum.telemetry.analyzer.handler.hub.snapshot;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.*;
+import ru.yandex.practicum.telemetry.analyzer.service.HubRouterClient;
 import ru.yandex.practicum.telemetry.analyzer.model.Condition;
 import ru.yandex.practicum.telemetry.analyzer.model.Scenario;
 import ru.yandex.practicum.telemetry.analyzer.model.ScenarioCondition;
 import ru.yandex.practicum.telemetry.analyzer.repository.ScenarioActionRepository;
 import ru.yandex.practicum.telemetry.analyzer.repository.ScenarioConditionRepository;
 import ru.yandex.practicum.telemetry.analyzer.repository.ScenarioRepository;
-import ru.yandex.practicum.telemetry.analyzer.grpc.HubRouterClient;
 
 import java.util.List;
 import java.util.Map;
@@ -77,32 +77,48 @@ public class SnapshotHandler {
 
     private Integer extractValue(SensorStateAvro sensorState, ConditionTypeAvro type) {
         try {
+            Object data = sensorState.getData();
+            log.debug("Extracting value for type {} from data type: {}",
+                    type, data.getClass().getSimpleName());
+
             return switch (type) {
                 case MOTION -> {
-                    MotionSensorAvro motion = (MotionSensorAvro) sensorState.getData();
-                    yield motion.getMotion() ? 1 : 0;
+                    MotionSensorAvro motion = (MotionSensorAvro) data;
+                    int value = motion.getMotion() ? 1 : 0;
+                    log.debug("Motion value: {} -> {}", motion.getMotion(), value);
+                    yield value;
                 }
                 case LUMINOSITY -> {
-                    LightSensorAvro light = (LightSensorAvro) sensorState.getData();
+                    LightSensorAvro light = (LightSensorAvro) data;
+                    log.debug("Luminosity value: {}", light.getLuminosity());
                     yield light.getLuminosity();
                 }
                 case SWITCH -> {
-                    SwitchSensorAvro sw = (SwitchSensorAvro) sensorState.getData();
-                    yield sw.getState() ? 1 : 0;
+                    SwitchSensorAvro sw = (SwitchSensorAvro) data;
+                    int value = sw.getState() ? 1 : 0;
+                    log.debug("Switch value: {} -> {}", sw.getState(), value);
+                    yield value;
                 }
                 case TEMPERATURE -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
+                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                    log.debug("Temperature value: {}", climate.getTemperatureC());
                     yield climate.getTemperatureC();
                 }
                 case CO2LEVEL -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
+                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                    log.debug("CO2 level: {}", climate.getCo2Level());
                     yield climate.getCo2Level();
                 }
                 case HUMIDITY -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
+                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                    log.debug("Humidity: {}", climate.getHumidity());
                     yield climate.getHumidity();
                 }
             };
+        } catch (ClassCastException e) {
+            log.error("❌ Type mismatch! Condition type: {}, Data type: {}",
+                    type, sensorState.getData().getClass().getSimpleName(), e);
+            return null;
         } catch (Exception e) {
             log.error("Error extracting value for type {}", type, e);
             return null;
@@ -122,7 +138,9 @@ public class SnapshotHandler {
     private void executeScenarioActions(Scenario scenario) {
         scenarioActionRepository.findByScenario(scenario)
                 .forEach(action -> {
-                    log.info("Executing action: sensor={}, type={}, value={}",
+                    log.info("🚀 Executing action: scenario={}, hub={}, sensor={}, type={}, value={}",
+                            scenario.getName(),
+                            scenario.getHubId(),
                             action.getSensor().getId(),
                             action.getAction().getType(),
                             action.getAction().getValue());

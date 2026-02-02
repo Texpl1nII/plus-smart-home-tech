@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.analyzer.grpc;
+package ru.yandex.practicum.telemetry.analyzer.service;
 
 import com.google.protobuf.Timestamp;
 import lombok.extern.slf4j.Slf4j;
