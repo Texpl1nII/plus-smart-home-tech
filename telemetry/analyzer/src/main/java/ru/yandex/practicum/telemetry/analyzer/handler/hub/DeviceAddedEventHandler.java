@@ -1,6 +1,7 @@
 package ru.yandex.practicum.telemetry.analyzer.handler.hub;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;  // ← ДОБАВЬТЕ ЭТО!
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.DeviceAddedEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
@@ -8,6 +9,7 @@ import ru.yandex.practicum.telemetry.analyzer.handler.HubEventHandler;
 import ru.yandex.practicum.telemetry.analyzer.model.Sensor;
 import ru.yandex.practicum.telemetry.analyzer.repository.SensorRepository;
 
+@Slf4j  // ← ДОБАВЬТЕ ЭТО!
 @Component
 @RequiredArgsConstructor
 public class DeviceAddedEventHandler implements HubEventHandler {
