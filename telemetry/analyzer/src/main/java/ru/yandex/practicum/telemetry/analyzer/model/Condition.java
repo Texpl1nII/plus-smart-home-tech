@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.analyzer.entity;
+package ru.yandex.practicum.telemetry.analyzer.model;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,11 +21,11 @@ public class Condition {
 
     @Column(name = "type")
     @Enumerated(EnumType.STRING)
-    private ConditionTypeAvro type; // Avro enum
+    private ConditionTypeAvro type;
 
     @Column(name = "operation")
     @Enumerated(EnumType.STRING)
-    private ConditionOperationAvro operation; // Avro enum
+    private ConditionOperationAvro operation;
 
     @Column(name = "value")
     private Integer value;

@@ -5,11 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.*;
-import ru.yandex.practicum.telemetry.analyzer.entity.Condition;
-import ru.yandex.practicum.telemetry.analyzer.entity.Scenario;
-import ru.yandex.practicum.telemetry.analyzer.entity.ScenarioAction;
-import ru.yandex.practicum.telemetry.analyzer.entity.ScenarioCondition;
 import ru.yandex.practicum.telemetry.analyzer.grpc.HubRouterClient;
+import ru.yandex.practicum.telemetry.analyzer.model.Condition;
+import ru.yandex.practicum.telemetry.analyzer.model.Scenario;
+import ru.yandex.practicum.telemetry.analyzer.model.ScenarioAction;
+import ru.yandex.practicum.telemetry.analyzer.model.ScenarioCondition;
 import ru.yandex.practicum.telemetry.analyzer.repository.*;
 
 import java.util.List;

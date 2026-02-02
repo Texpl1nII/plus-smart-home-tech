@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.analyzer.entity;
+package ru.yandex.practicum.telemetry.analyzer.model;
 
 import jakarta.persistence.*;
 import lombok.*;

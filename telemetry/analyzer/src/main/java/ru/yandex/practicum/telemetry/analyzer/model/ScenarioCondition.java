@@ -1,32 +1,32 @@
-package ru.yandex.practicum.telemetry.analyzer.entity;
+package ru.yandex.practicum.telemetry.analyzer.model;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "scenario_actions")
+@Table(name = "scenario_conditions")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScenarioAction {
+public class ScenarioCondition {
 
     @EmbeddedId
-    private ScenarioActionId id;
+    private ScenarioConditionId id;
 
-    @MapsId("scenarioId")
+    @MapsId("scenario")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scenario_id", nullable = false)
     private Scenario scenario;
 
-    @MapsId("sensorId")
+    @MapsId("sensor")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sensor_id", nullable = false)
     private Sensor sensor;
 
-    @MapsId("actionId")
+    @MapsId("condition")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "action_id", nullable = false)
-    private Action action;
+    @JoinColumn(name = "condition_id", nullable = false)
+    private Condition condition;
 }

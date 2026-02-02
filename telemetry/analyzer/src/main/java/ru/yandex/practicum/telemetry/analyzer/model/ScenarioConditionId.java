@@ -1,4 +1,5 @@
-package ru.yandex.practicum.telemetry.analyzer.entity;
+package ru.yandex.practicum.telemetry.analyzer.model;
+
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -12,14 +13,14 @@ import java.io.Serializable;
 @AllArgsConstructor
 @EqualsAndHashCode
 @Embeddable
-public class ScenarioActionId implements Serializable {
+public class ScenarioConditionId implements Serializable {
 
     @Column(name = "scenario_id")
-    private Long scenarioId;
+    private Long scenario;
 
     @Column(name = "sensor_id")
-    private String sensorId;
+    private String sensor;
 
-    @Column(name = "action_id")
-    private Long actionId;
+    @Column(name = "condition_id")
+    private Long condition;
 }
