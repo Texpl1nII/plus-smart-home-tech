@@ -29,10 +29,19 @@ public class HubRouterClient {
 
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
         try {
+            log.info("🚀 SENDING TO HUB ROUTER: Scenario={}, Hub={}, Sensor={}, Action={}, Value={}",
+                    scenarioAction.getScenario().getName(),
+                    scenarioAction.getScenario().getHubId(),
+                    scenarioAction.getSensor().getId(),
+                    scenarioAction.getAction().getType(),
+                    scenarioAction.getAction().getValue());
+
             DeviceActionRequest deviceActionRequest = toDeviceActionRequest(scenarioAction);
             hubRouterClient.handleDeviceAction(deviceActionRequest);
+
+            log.info("✅ SENT TO HUB ROUTER");
         } catch (Exception e) {
-            log.error("Error occurred while sending request", e);
+            log.error("❌ ERROR sending to Hub Router", e);
         }
     }
 
@@ -69,5 +78,4 @@ public class HubRouterClient {
                 .setNanos(instant.getNano())
                 .build();
     }
-
 }
