@@ -15,6 +15,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
 
 grpc:
   client:
@@ -47,6 +48,9 @@ analyzer:
 
 logging:
   level:
-    ru.yandex.practicum.telemetry.analyzer: INFO
-    ru.yandex.practicum.telemetry.analyzer.grpc.HubRouterClient: INFO
-    ru.yandex.practicum.telemetry.analyzer.handler.snapshot.SnapshotHandler: INFO
+    ru.yandex.practicum.telemetry.analyzer: DEBUG
+    ru.yandex.practicum.telemetry.analyzer.service: DEBUG
+    ru.yandex.practicum.telemetry.analyzer.processor: DEBUG
+    org.springframework.transaction: TRACE
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

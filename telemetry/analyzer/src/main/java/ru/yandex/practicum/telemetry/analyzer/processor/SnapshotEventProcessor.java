@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.telemetry.analyzer.kafka.KafkaClient;
-import ru.yandex.practicum.telemetry.analyzer.handler.hub.snapshot.SnapshotHandler;
+import ru.yandex.practicum.telemetry.analyzer.service.SnapshotHandler; // ← ПРАВИЛЬНЫЙ импорт!
 
 import java.time.Duration;
 import java.util.List;
@@ -18,21 +18,22 @@ import java.util.List;
 @Component
 public class SnapshotEventProcessor {
 
-    private final SnapshotHandler snapshotHandler;  // ← Переименовано!
+    private final SnapshotHandler snapshotHandler;
     private final Consumer<String, SensorsSnapshotAvro> snapshotConsumer;
 
     @Value("${analyzer.kafka.topics.snapshots-events}")
     private String snapshotEventsTopic;
 
-    public SnapshotEventProcessor(SnapshotHandler snapshotHandler, KafkaClient kafkaClient) {  // ← Переименовано!
-        this.snapshotHandler = snapshotHandler;  // ← Переименовано!
+    public SnapshotEventProcessor(SnapshotHandler snapshotHandler, KafkaClient kafkaClient) {
+        this.snapshotHandler = snapshotHandler;
         this.snapshotConsumer = kafkaClient.getSnapshotConsumer();
     }
 
     public void start() {
         log.info("🚀 Starting SnapshotEventProcessor...");
+
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            log.info("Shutdown hook triggered");
+            log.info("Shutdown hook triggered for SnapshotEventProcessor");
             snapshotConsumer.wakeup();
         }));
 
@@ -41,28 +42,38 @@ public class SnapshotEventProcessor {
             log.info("Subscribed to topic: {}", snapshotEventsTopic);
 
             while (true) {
-                ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofMillis(1000));
+                ConsumerRecords<String, SensorsSnapshotAvro> records =
+                        snapshotConsumer.poll(Duration.ofMillis(1000));
+
                 if (!records.isEmpty()) {
                     log.info("Received {} snapshot records", records.count());
+
                     for (ConsumerRecord<String, SensorsSnapshotAvro> record : records) {
                         SensorsSnapshotAvro sensorsSnapshot = record.value();
                         log.debug("Processing snapshot for hub: {}", sensorsSnapshot.getHubId());
-                        snapshotHandler.handle(sensorsSnapshot);  // ← Переименовано!
+
+                        try {
+                            snapshotHandler.handle(sensorsSnapshot);
+                        } catch (Exception e) {
+                            log.error("Error handling snapshot for hub {}",
+                                    sensorsSnapshot.getHubId(), e);
+                        }
                     }
+
                     snapshotConsumer.commitAsync();
                 }
             }
         } catch (WakeupException ignored) {
             log.info("WakeupException caught, shutting down...");
         } catch (Exception e) {
-            log.error("❌ Ошибка при обработке снапшотов", e);
+            log.error("❌ Error processing snapshots", e);
         } finally {
             try {
                 snapshotConsumer.commitSync();
                 log.info("Offsets committed synchronously");
             } finally {
                 snapshotConsumer.close();
-                log.info("Consumer closed");
+                log.info("Snapshot consumer closed");
             }
         }
     }

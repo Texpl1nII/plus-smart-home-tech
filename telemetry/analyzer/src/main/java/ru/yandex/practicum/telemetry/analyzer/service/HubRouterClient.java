@@ -1,6 +1,7 @@
 package ru.yandex.practicum.telemetry.analyzer.service;
 
 import com.google.protobuf.Timestamp;
+import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import ru.yandex.practicum.telemetry.analyzer.model.ScenarioAction;
 import ru.yandex.practicum.telemetry.analyzer.model.Sensor;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -28,18 +30,31 @@ public class HubRouterClient {
     }
 
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
+        Scenario scenario = scenarioAction.getScenario();
+        Sensor sensor = scenarioAction.getSensor();
+        Action action = scenarioAction.getAction();
+
+        log.info("🎯 SENDING TO HUB ROUTER: Scenario='{}', Hub={}, Sensor={}, Action={}, Value={}",
+                scenario.getName(),
+                scenario.getHubId(),
+                sensor.getId(),
+                action.getType(),
+                action.getValue());
+
         try {
-            log.info("🚀 SENDING TO HUB ROUTER: Scenario={}, Hub={}, Sensor={}, Action={}, Value={}",
-                    scenarioAction.getScenario().getName(),
-                    scenarioAction.getScenario().getHubId(),
-                    scenarioAction.getSensor().getId(),
-                    scenarioAction.getAction().getType(),
-                    scenarioAction.getAction().getValue());
+            DeviceActionRequest request = toDeviceActionRequest(scenarioAction);
+            log.debug("Built gRPC request: {}", request);
 
-            DeviceActionRequest deviceActionRequest = toDeviceActionRequest(scenarioAction);
-            hubRouterClient.handleDeviceAction(deviceActionRequest);
+            // Отправляем с таймаутом
+            hubRouterClient
+                    .withDeadlineAfter(5, TimeUnit.SECONDS)
+                    .handleDeviceAction(request);
 
-            log.info("✅ SENT TO HUB ROUTER");
+            log.info("✅ SUCCESSFULLY sent command to Hub Router");
+
+        } catch (StatusRuntimeException e) {
+            log.error("❌ gRPC ERROR: Status={}, Description={}",
+                    e.getStatus(), e.getStatus().getDescription());
         } catch (Exception e) {
             log.error("❌ ERROR sending to Hub Router", e);
         }
