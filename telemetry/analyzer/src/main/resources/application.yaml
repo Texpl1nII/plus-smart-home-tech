@@ -4,7 +4,7 @@ spring:
 
   datasource:
     # НА GITHUB: используйте service name из docker-compose
-    url: jdbc:postgresql://postgres:5433/hub_router  # ← ИЗМЕНИТЬ на postgres!
+    url: jdbc:postgresql://localhost:5433/hub_router  # ← ИЗМЕНИТЬ на postgres!
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -21,7 +21,7 @@ spring:
 grpc:
   client:
     hub-router:
-      address: 'static://hub-router:59090'
+      address: 'static://localhost:59090'
       enableKeepAlive: true
       keepAliveWithoutCalls: true
       negotiationType: plaintext
@@ -30,14 +30,14 @@ analyzer:
   kafka:
     consumer:
       hub:
-        bootstrap-server: kafka:9092
+        bootstrap-server: localhost::9092
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.HubEventDeserializer
         group-id: events.analyzer
         enable-auto-commit: false
         time-out: 1000
       snapshot:
-        bootstrap-server: kafka:9092
+        bootstrap-server: localhost::9092
         group-id: snapshot.analyzer
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.SensorsSnapshotDeserializer
