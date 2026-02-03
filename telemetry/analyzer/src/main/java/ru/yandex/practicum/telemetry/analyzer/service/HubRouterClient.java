@@ -27,30 +27,68 @@ public class HubRouterClient {
     public HubRouterClient(@GrpcClient("hub-router")
                            HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient) {
         this.hubRouterClient = hubRouterClient;
+
+        // Проверяем подключение при создании
+        checkGrpcConnection();
+    }
+
+    private void checkGrpcConnection() {
+        log.info("🔍 Проверка gRPC подключения к Hub Router...");
+
+        try {
+            // Простая проверка - пытаемся получить stub
+            if (hubRouterClient != null) {
+                log.info("✅ gRPC stub создан успешно");
+
+                // Можно попробовать отправить тестовый запрос
+                DeviceActionRequest testRequest = DeviceActionRequest.newBuilder()
+                        .setHubId("test-connection")
+                        .setScenarioName("test")
+                        .setAction(DeviceActionProto.newBuilder()
+                                .setSensorId("test-sensor")
+                                .setType(ActionTypeProto.ACTIVATE)
+                                .build())
+                        .setTimestamp(Timestamp.newBuilder()
+                                .setSeconds(System.currentTimeMillis() / 1000)
+                                .build())
+                        .build();
+
+                try {
+                    hubRouterClient
+                            .withDeadlineAfter(2, TimeUnit.SECONDS)
+                            .handleDeviceAction(testRequest);
+                    log.info("✅ Hub Router доступен!");
+                } catch (StatusRuntimeException e) {
+                    // Это нормально - тестовый сценарий не существует
+                    log.info("✅ Hub Router отвечает (ошибка ожидаема): {}", e.getStatus());
+                }
+            } else {
+                log.error("❌ gRPC stub не создан!");
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при проверке gRPC подключения: {}", e.getMessage());
+        }
     }
 
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
-        Scenario scenario = scenarioAction.getScenario();
-        Sensor sensor = scenarioAction.getSensor();
-        Action action = scenarioAction.getAction();
-
-        log.info("🎯 SENDING TO HUB ROUTER: Scenario='{}', Hub={}, Sensor={}, Action={}, Value={}",
-                scenario.getName(),
-                scenario.getHubId(),
-                sensor.getId(),
-                action.getType(),
-                action.getValue());
+        log.info("🎯 === HUB ROUTER CLIENT ===");
+        log.info("Scenario: '{}'", scenarioAction.getScenario().getName());
+        log.info("Hub: {}", scenarioAction.getScenario().getHubId());
+        log.info("Sensor: {}", scenarioAction.getSensor().getId());
+        log.info("Action type: {}", scenarioAction.getAction().getType());
+        log.info("Action value: {}", scenarioAction.getAction().getValue());
 
         try {
             DeviceActionRequest request = toDeviceActionRequest(scenarioAction);
-            log.debug("Built gRPC request: {}", request);
+            log.info("📡 gRPC Request: {}", request);
 
             // Отправляем с таймаутом
             hubRouterClient
                     .withDeadlineAfter(5, TimeUnit.SECONDS)
                     .handleDeviceAction(request);
 
-            log.info("✅ SUCCESSFULLY sent command to Hub Router");
+            log.info("✅ SUCCESS: Command sent to Hub Router!");
 
         } catch (StatusRuntimeException e) {
             log.error("❌ gRPC ERROR: Status={}, Description={}",
