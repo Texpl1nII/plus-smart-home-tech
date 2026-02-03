@@ -112,14 +112,18 @@ public class HubRouterClient {
         Sensor sensor = scenarioAction.getSensor();
         Action action = scenarioAction.getAction();
 
+        DeviceActionProto.Builder actionBuilder = DeviceActionProto.newBuilder()
+                .setSensorId(sensor.getId())
+                .setType(toActionTypeProto(action.getType()));
+
+        if (action.getValue() != null) {
+            actionBuilder.setValue(action.getValue());
+        }
+
         return DeviceActionRequest.newBuilder()
                 .setHubId(scenario.getHubId())
                 .setScenarioName(scenario.getName())
-                .setAction(DeviceActionProto.newBuilder()
-                        .setSensorId(sensor.getId())
-                        .setType(toActionTypeProto(action.getType()))
-                        .setValue(action.getValue())
-                        .build())
+                .setAction(actionBuilder.build())
                 .setTimestamp(currentTimestamp())
                 .build();
     }
