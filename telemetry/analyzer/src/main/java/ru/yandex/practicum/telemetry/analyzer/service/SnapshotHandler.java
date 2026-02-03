@@ -28,8 +28,7 @@ public class SnapshotHandler {
         String hubId = snapshot.getHubId();
         Map<String, SensorStateAvro> sensorStates = snapshot.getSensorsState();
 
-        log.info("=== PROCESSING SNAPSHOT ===");
-        log.info("Hub: {}", hubId);
+        log.info("=== PROCESSING SNAPSHOT FOR HUB: {} ===", hubId);
         log.info("Sensors in snapshot: {}", sensorStates.size());
 
         // 1. Получаем все сценарии для хаба
@@ -42,7 +41,7 @@ public class SnapshotHandler {
         }
 
         for (Scenario scenario : scenarios) {
-            log.info("Checking scenario: '{}'", scenario.getName());
+            log.info("=== CHECKING SCENARIO: '{}' ===", scenario.getName());
 
             // 2. Проверяем все условия сценария
             List<ScenarioCondition> conditions = scenarioConditionRepository.findByScenario(scenario);
@@ -52,6 +51,7 @@ public class SnapshotHandler {
                 continue;
             }
 
+            log.info("Scenario has {} conditions", conditions.size());
             boolean allConditionsMet = checkAllConditions(conditions, sensorStates);
 
             if (allConditionsMet) {
@@ -59,7 +59,7 @@ public class SnapshotHandler {
                 // 3. Выполняем действия сценария
                 executeActions(scenario);
             } else {
-                log.info("❌ Conditions NOT met for scenario '{}'", scenario.getName());
+                log.info("❌ Some conditions NOT met for scenario '{}'", scenario.getName());
             }
         }
 
@@ -72,88 +72,127 @@ public class SnapshotHandler {
             String sensorId = scenarioCondition.getSensor().getId();
             Condition condition = scenarioCondition.getCondition();
 
+            log.info("Checking condition: sensor={}, type={}, operation={}, target_value={}",
+                    sensorId, condition.getType(), condition.getOperation(), condition.getValue());
+
             // Получаем состояние сенсора из снапшота
             SensorStateAvro sensorState = sensorStates.get(sensorId);
             if (sensorState == null) {
-                log.warn("Sensor {} not found in snapshot", sensorId);
+                log.error("❌ Sensor {} not found in snapshot!", sensorId);
+                log.info("Available sensors: {}", sensorStates.keySet());
                 return false;
             }
 
             // Получаем значение сенсора
             Integer sensorValue = extractSensorValue(sensorState.getData(), condition.getType());
+            log.info("Sensor {} current value: {}", sensorId, sensorValue);
+
             if (sensorValue == null) {
-                log.warn("Cannot extract value for sensor {} type {}", sensorId, condition.getType());
+                log.error("❌ Cannot extract value for sensor {} type {}", sensorId, condition.getType());
+                log.info("Sensor data class: {}", sensorState.getData().getClass().getSimpleName());
                 return false;
             }
 
             // Проверяем условие
-            if (!checkCondition(condition, sensorValue)) {
-                log.debug("Condition NOT met: sensor={}, type={}, value={}, condition={} {} {}",
-                        sensorId, condition.getType(), sensorValue,
-                        condition.getOperation(), condition.getValue());
+            boolean conditionMet = checkCondition(condition, sensorValue);
+            log.info("Condition check: {} {} {} = {}",
+                    sensorValue, condition.getOperation(), condition.getValue(), conditionMet);
+
+            if (!conditionMet) {
+                log.info("❌ Condition NOT met for sensor {}", sensorId);
                 return false;
             }
 
-            log.debug("Condition met: sensor={}, type={}, value={}, condition={} {} {}",
-                    sensorId, condition.getType(), sensorValue,
-                    condition.getOperation(), condition.getValue());
+            log.info("✅ Condition met for sensor {}", sensorId);
         }
 
+        log.info("✅ ALL CONDITIONS MET");
         return true;
     }
 
     private Integer extractSensorValue(Object sensorData, ConditionTypeAvro type) {
+        if (sensorData == null) {
+            log.error("Sensor data is null for type {}", type);
+            return null;
+        }
+
         try {
             switch (type) {
                 case TEMPERATURE:
-                    if (sensorData instanceof ClimateSensorAvro) {
-                        return ((ClimateSensorAvro) sensorData).getTemperatureC();
-                    } else if (sensorData instanceof TemperatureSensorAvro) {
-                        return ((TemperatureSensorAvro) sensorData).getTemperatureC();
+                    if (sensorData instanceof ClimateSensorAvro climateSensor) {
+                        int temp = climateSensor.getTemperatureC();
+                        log.debug("Climate sensor temperature: {}°C", temp);
+                        return temp;
+                    } else if (sensorData instanceof TemperatureSensorAvro tempSensor) {
+                        int temp = tempSensor.getTemperatureC();
+                        log.debug("Temperature sensor: {}°C", temp);
+                        return temp;
                     }
+                    log.warn("Temperature expected but got: {}", sensorData.getClass().getSimpleName());
                     break;
 
                 case HUMIDITY:
-                    if (sensorData instanceof ClimateSensorAvro) {
-                        return ((ClimateSensorAvro) sensorData).getHumidity();
+                    if (sensorData instanceof ClimateSensorAvro climateSensor) {
+                        int humidity = climateSensor.getHumidity();
+                        log.debug("Climate sensor humidity: {}%", humidity);
+                        return humidity;
                     }
                     break;
 
                 case CO2LEVEL:
-                    if (sensorData instanceof ClimateSensorAvro) {
-                        return ((ClimateSensorAvro) sensorData).getCo2Level();
+                    if (sensorData instanceof ClimateSensorAvro climateSensor) {
+                        int co2 = climateSensor.getCo2Level();
+                        log.debug("Climate sensor CO2: {} ppm", co2);
+                        return co2;
                     }
                     break;
 
                 case LUMINOSITY:
-                    if (sensorData instanceof LightSensorAvro) {
-                        return ((LightSensorAvro) sensorData).getLuminosity();
+                    if (sensorData instanceof LightSensorAvro lightSensor) {
+                        int luminosity = lightSensor.getLuminosity();
+                        log.debug("Light sensor luminosity: {}", luminosity);
+                        return luminosity;
                     }
                     break;
 
                 case MOTION:
-                    if (sensorData instanceof MotionSensorAvro) {
-                        return ((MotionSensorAvro) sensorData).getMotion() ? 1 : 0;
+                    if (sensorData instanceof MotionSensorAvro motionSensor) {
+                        boolean motion = motionSensor.getMotion();
+                        int value = motion ? 1 : 0;
+                        log.debug("Motion sensor: {} -> {}", motion, value);
+                        return value;
                     }
                     break;
 
                 case SWITCH:
-                    if (sensorData instanceof SwitchSensorAvro) {
-                        return ((SwitchSensorAvro) sensorData).getState() ? 1 : 0;
+                    if (sensorData instanceof SwitchSensorAvro switchSensor) {
+                        boolean state = switchSensor.getState();
+                        int value = state ? 1 : 0;
+                        log.debug("Switch sensor: {} -> {}", state, value);
+                        return value;
                     }
                     break;
             }
         } catch (Exception e) {
-            log.error("Error extracting sensor value for type {}: {}", type, e.getMessage());
+            log.error("Error extracting sensor value for type {}: {}", type, e.getMessage(), e);
         }
 
+        log.error("Cannot extract {} value from {}", type, sensorData.getClass().getSimpleName());
         return null;
     }
 
     private boolean checkCondition(Condition condition, Integer sensorValue) {
-        if (sensorValue == null || condition.getValue() == null) {
+        if (sensorValue == null) {
+            log.error("Sensor value is null");
             return false;
         }
+
+        if (condition.getValue() == null) {
+            log.error("Condition target value is null");
+            return false;
+        }
+
+        log.debug("Checking: {} {} {}", sensorValue, condition.getOperation(), condition.getValue());
 
         switch (condition.getOperation()) {
             case EQUALS:
@@ -163,7 +202,7 @@ public class SnapshotHandler {
             case LOWER_THAN:
                 return sensorValue < condition.getValue();
             default:
-                log.warn("Unknown operation: {}", condition.getOperation());
+                log.error("Unknown operation: {}", condition.getOperation());
                 return false;
         }
     }
@@ -172,17 +211,23 @@ public class SnapshotHandler {
         List<ScenarioAction> actions = scenarioActionRepository.findByScenario(scenario);
         log.info("Executing {} actions for scenario '{}'", actions.size(), scenario.getName());
 
+        if (actions.isEmpty()) {
+            log.error("❌ NO ACTIONS FOUND for scenario '{}'!", scenario.getName());
+            return;
+        }
+
         for (ScenarioAction action : actions) {
             try {
-                log.info("Sending action: sensor={}, type={}, value={}",
-                        action.getSensor().getId(),
-                        action.getAction().getType(),
-                        action.getAction().getValue());
+                log.info("=== SENDING ACTION ===");
+                log.info("Sensor: {}", action.getSensor().getId());
+                log.info("Action type: {}", action.getAction().getType());
+                log.info("Action value: {}", action.getAction().getValue());
 
                 hubRouterClient.sendDeviceRequest(action);
                 log.info("✅ Action sent successfully");
+
             } catch (Exception e) {
-                log.error("❌ Failed to send action: {}", e.getMessage());
+                log.error("❌ Failed to send action: {}", e.getMessage(), e);
             }
         }
     }
