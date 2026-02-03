@@ -127,37 +127,17 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
     }
 
     private ConditionTypeAvro convertToConditionTypeAvro(Object type) {
-        String typeStr = type.toString();
-        try {
-            return ConditionTypeAvro.valueOf(typeStr);
-        } catch (IllegalArgumentException e) {
-            log.error("Cannot convert to ConditionTypeAvro: {}", typeStr);
-            // Маппинг для protobuf -> avro
-            return switch (typeStr) {
-                case "MOTION" -> ConditionTypeAvro.MOTION;
-                case "LUMINOSITY" -> ConditionTypeAvro.LUMINOSITY;
-                case "SWITCH" -> ConditionTypeAvro.SWITCH;
-                case "TEMPERATURE" -> ConditionTypeAvro.TEMPERATURE;
-                case "CO2LEVEL" -> ConditionTypeAvro.CO2LEVEL;
-                case "HUMIDITY" -> ConditionTypeAvro.HUMIDITY;
-                default -> throw new IllegalArgumentException("Unknown type: " + typeStr);
-            };
+        if (type instanceof ConditionTypeAvro) {
+            return (ConditionTypeAvro) type;
         }
+        return ConditionTypeAvro.valueOf(type.toString());
     }
 
     private ConditionOperationAvro convertToConditionOperationAvro(Object operation) {
-        String opStr = operation.toString();
-        try {
-            return ConditionOperationAvro.valueOf(opStr);
-        } catch (IllegalArgumentException e) {
-            log.error("Cannot convert to ConditionOperationAvro: {}", opStr);
-            return switch (opStr) {
-                case "EQUALS" -> ConditionOperationAvro.EQUALS;
-                case "GREATER_THAN" -> ConditionOperationAvro.GREATER_THAN;
-                case "LOWER_THAN" -> ConditionOperationAvro.LOWER_THAN;
-                default -> throw new IllegalArgumentException("Unknown operation: " + opStr);
-            };
+        if (operation instanceof ConditionOperationAvro) {
+            return (ConditionOperationAvro) operation;
         }
+        return ConditionOperationAvro.valueOf(operation.toString());
     }
 
     private void saveActions(Scenario scenario, HubEventAvro event, ScenarioAddedEventAvro avro) {
