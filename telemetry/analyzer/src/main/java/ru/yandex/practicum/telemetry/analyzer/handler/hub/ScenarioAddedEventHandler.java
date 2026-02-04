@@ -80,14 +80,13 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                             "Sensor not found: " + conditionAvro.getSensorId() +
                                     " for hub: " + event.getHubId()));
 
+            // ПРАВИЛЬНОЕ ПРЕОБРАЗОВАНИЕ (убираем toString() и valueOf()!)
+            ConditionTypeAvro typeAvro = conditionAvro.getType();  // Уже правильный тип!
+            ConditionOperationAvro operationAvro = conditionAvro.getOperation();  // Уже правильный тип!
             Integer value = extractConditionValue(conditionAvro.getValue());
 
-            // ПРЕОБРАЗУЕМ ТИП - УПРОЩЕННЫЙ ВАРИАНТ
-            ConditionTypeAvro typeAvro = ConditionTypeAvro.valueOf(conditionAvro.getType().toString());
-            ConditionOperationAvro operationAvro = ConditionOperationAvro.valueOf(conditionAvro.getOperation().toString());
-
-            log.info("Saving condition: sensor={}, type={}, operation={}, value={}",
-                    sensor.getId(), typeAvro, operationAvro, value);
+            log.info("Saving condition: sensor={}, type={}, operation={}, value={} (original: {})",
+                    sensor.getId(), typeAvro, operationAvro, value, conditionAvro.getValue());
 
             Condition condition = conditionRepository.save(
                     Condition.builder()
@@ -116,11 +115,14 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
 
     private Integer extractConditionValue(Object value) {
         if (value == null) {
-            return 0;
+            log.info("Condition value is null, returning null");
+            return null;  // Возвращаем null, а не 0!
         }
 
         if (value instanceof Boolean) {
-            return (Boolean) value ? 1 : 0;
+            int result = (Boolean) value ? 1 : 0;
+            log.debug("Boolean value {} converted to {}", value, result);
+            return result;
         }
 
         if (value instanceof Integer) {
@@ -151,7 +153,8 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
         try {
             return Integer.parseInt(str);
         } catch (NumberFormatException e) {
-            return 0;
+            log.warn("Cannot parse condition value '{}', returning null", value);
+            return null;
         }
     }
 
@@ -166,8 +169,8 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                             "Sensor not found: " + actionAvro.getSensorId() +
                                     " for hub: " + event.getHubId()));
 
-            // ПРОСТОЕ ПРЕОБРАЗОВАНИЕ
-            ActionTypeAvro typeAvro = ActionTypeAvro.valueOf(actionAvro.getType().toString());
+            // ПРАВИЛЬНОЕ ПРЕОБРАЗОВАНИЕ
+            ActionTypeAvro typeAvro = actionAvro.getType();  // Уже правильный тип!
 
             log.info("Saving action: sensor={}, type={}, value={}",
                     sensor.getId(), typeAvro, actionAvro.getValue());

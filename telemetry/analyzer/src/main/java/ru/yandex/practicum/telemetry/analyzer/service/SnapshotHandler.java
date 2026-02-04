@@ -187,8 +187,19 @@ public class SnapshotHandler {
             return false;
         }
 
+        // Для boolean условий (MOTION, SWITCH) значение может быть null
+        // Проверяем специальные случаи
         if (condition.getValue() == null) {
-            log.error("Condition target value is null");
+            // Для boolean типов null может означать "любое значение"
+            if (condition.getType() == ConditionTypeAvro.MOTION ||
+                    condition.getType() == ConditionTypeAvro.SWITCH) {
+                log.info("Condition value is null for boolean type {}, checking sensor value: {}",
+                        condition.getType(), sensorValue);
+                // Здесь логика зависит от требования - если null, то что проверять?
+                // Обычно для boolean если условие null, то проверяем что значение не null
+                return sensorValue != null;
+            }
+            log.error("Condition target value is null for non-boolean type {}", condition.getType());
             return false;
         }
 
