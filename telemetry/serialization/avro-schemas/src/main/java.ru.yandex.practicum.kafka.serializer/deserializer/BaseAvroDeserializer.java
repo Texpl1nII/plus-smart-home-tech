@@ -1,6 +1,5 @@
-package deserializer;
+package ru.yandex.practicum.kafka.serializer.deserializer;
 
-import exception.DeserializationException;
 import org.apache.avro.Schema;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
@@ -32,7 +31,7 @@ public class BaseAvroDeserializer<T extends SpecificRecordBase> implements Deser
             }
             return null;
         } catch (Exception e) {
-            throw new DeserializationException("Ошибка десереализации данных топика " + topic, e);
+            throw new ru.yandex.practicum.kafka.serializer.exception.DeserializationException("Ошибка десереализации данных топика " + topic, e);
         }
     }
 

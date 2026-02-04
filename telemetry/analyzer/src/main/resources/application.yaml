@@ -31,7 +31,7 @@ analyzer:
       hub:
         bootstrap-server: localhost:9092
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: deserializer.HubEventDeserializer
+        value-deserializer: ru.yandex.practicum.kafka.serializer.serializer.deserializer.HubEventDeserializer
         group-id: events.analyzer
         enable-auto-commit: false
         time-out: 1000
@@ -40,7 +40,7 @@ analyzer:
         bootstrap-server: localhost:9092
         group-id: snapshot.analyzer
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: deserializer.SensorsSnapshotDeserializer
+        value-deserializer: ru.yandex.practicum.kafka.serializer.serializer.deserializer.SensorsSnapshotDeserializer
         enable-auto-commit: false
         time-out: 500
         auto-offset-reset: earliest
