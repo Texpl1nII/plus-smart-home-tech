@@ -31,9 +31,17 @@ public class SnapshotHandler {
         log.info("=== PROCESSING SNAPSHOT FOR HUB: {} ===", hubId);
         log.info("Sensors in snapshot: {}", sensorStates.size());
 
+        // ДОБАВЛЕНО: логирование всех сенсоров в снапшоте
+        log.info("Available sensors in snapshot: {}", sensorStates.keySet());
+
         // 1. Получаем все сценарии для хаба
         List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
         log.info("Found {} scenarios for hub {}", scenarios.size(), hubId);
+
+        // ДОБАВЛЕНО: логирование найденных сценариев
+        for (Scenario scenario : scenarios) {
+            log.info("Scenario: '{}' (ID: {})", scenario.getName(), scenario.getId());
+        }
 
         if (scenarios.isEmpty()) {
             log.info("No scenarios found for hub {}", hubId);
@@ -41,7 +49,8 @@ public class SnapshotHandler {
         }
 
         for (Scenario scenario : scenarios) {
-            log.info("=== CHECKING SCENARIO: '{}' ===", scenario.getName());
+            log.info("=== CHECKING SCENARIO: '{}' (ID: {}) ===",
+                    scenario.getName(), scenario.getId());
 
             // 2. Проверяем все условия сценария
             List<ScenarioCondition> conditions = scenarioConditionRepository.findByScenario(scenario);
@@ -51,7 +60,17 @@ public class SnapshotHandler {
                 continue;
             }
 
-            log.info("Scenario has {} conditions", conditions.size());
+            log.info("Scenario '{}' has {} conditions", scenario.getName(), conditions.size());
+
+            // ДОБАВЛЕНО: подробное логирование каждого условия
+            for (ScenarioCondition condition : conditions) {
+                log.info("Condition details: sensorId={}, type={}, operation={}, value={}",
+                        condition.getSensor().getId(),
+                        condition.getCondition().getType(),
+                        condition.getCondition().getOperation(),
+                        condition.getCondition().getValue());
+            }
+
             boolean allConditionsMet = checkAllConditions(conditions, sensorStates);
 
             if (allConditionsMet) {
@@ -85,7 +104,8 @@ public class SnapshotHandler {
 
             // Получаем значение сенсора
             Integer sensorValue = extractSensorValue(sensorState.getData(), condition.getType());
-            log.info("Sensor {} current value: {}", sensorId, sensorValue);
+            log.info("Sensor {} current value: {} (data class: {})",
+                    sensorId, sensorValue, sensorState.getData().getClass().getSimpleName());
 
             if (sensorValue == null) {
                 log.error("❌ Cannot extract value for sensor {} type {}", sensorId, condition.getType());
@@ -187,18 +207,18 @@ public class SnapshotHandler {
             return false;
         }
 
-        // Для boolean условий (MOTION, SWITCH) значение может быть null
-        // Проверяем специальные случаи
+        // Обработка null значения в условии
         if (condition.getValue() == null) {
-            // Для boolean типов null может означать "любое значение"
+            // Для boolean типов (MOTION, SWITCH) null может означать "проверка на наличие любого значения"
             if (condition.getType() == ConditionTypeAvro.MOTION ||
                     condition.getType() == ConditionTypeAvro.SWITCH) {
-                log.info("Condition value is null for boolean type {}, checking sensor value: {}",
+                log.info("Condition value is null for boolean type {}, sensor value: {}",
                         condition.getType(), sensorValue);
-                // Здесь логика зависит от требования - если null, то что проверять?
-                // Обычно для boolean если условие null, то проверяем что значение не null
-                return sensorValue != null;
+                // Если значение null, а сенсор показывает 0 или 1 - условие выполняется
+                // (например, "есть движение" без уточнения true/false)
+                return sensorValue == 0 || sensorValue == 1;
             }
+            // Для числовых типов null в условии - ошибка
             log.error("Condition target value is null for non-boolean type {}", condition.getType());
             return false;
         }
