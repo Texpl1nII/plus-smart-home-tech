@@ -116,44 +116,41 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
 
     private Integer extractConditionValue(Object value) {
         if (value == null) {
-            log.warn("Condition value is null, defaulting to 0");
+            return 0;
+        }
+
+        if (value instanceof Boolean) {
+            return (Boolean) value ? 1 : 0;
+        }
+
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+
+        if (value instanceof Long) {
+            long longVal = (Long) value;
+            // Если это 1L или 0L (boolean в виде Long)
+            if (longVal == 1L || longVal == 0L) {
+                return (int) longVal;
+            }
+            return (int) longVal;
+        }
+
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+
+        String str = value.toString().toLowerCase().trim();
+        if ("true".equals(str) || "1".equals(str)) {
+            return 1;
+        }
+        if ("false".equals(str) || "0".equals(str)) {
             return 0;
         }
 
         try {
-            // 1. Boolean для SWITCH и MOTION сенсоров
-            if (value instanceof Boolean) {
-                return (Boolean) value ? 1 : 0;
-            }
-
-            // 2. Integer для числовых сенсоров
-            if (value instanceof Integer) {
-                return (Integer) value;
-            }
-
-            // 3. Long (может приходить из Avro)
-            if (value instanceof Long) {
-                return ((Long) value).intValue();
-            }
-
-            // 4. Другие числовые типы
-            if (value instanceof Number) {
-                return ((Number) value).intValue();
-            }
-
-            // 5. Строковое представление
-            String strVal = value.toString().toLowerCase();
-            if (strVal.equals("true")) {
-                return 1;
-            } else if (strVal.equals("false")) {
-                return 0;
-            } else {
-                return Integer.parseInt(strVal);
-            }
-
-        } catch (Exception e) {
-            log.error("Cannot convert value to Integer: {} (type: {})",
-                    value, value.getClass().getName(), e);
+            return Integer.parseInt(str);
+        } catch (NumberFormatException e) {
             return 0;
         }
     }

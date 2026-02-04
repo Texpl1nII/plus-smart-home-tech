@@ -46,10 +46,9 @@ public class HubRouterClient {
     }
 
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
-        log.info("Sending device request for scenario: '{}', hub: {}, sensor: {}",
+        log.info("🚀 Sending device request for scenario: '{}', hub: {}",
                 scenarioAction.getScenario().getName(),
-                scenarioAction.getScenario().getHubId(),
-                scenarioAction.getSensor().getId());
+                scenarioAction.getScenario().getHubId());
 
         try {
             DeviceActionRequest request = toDeviceActionRequest(scenarioAction);
@@ -58,10 +57,10 @@ public class HubRouterClient {
                     .withDeadlineAfter(5, TimeUnit.SECONDS)
                     .handleDeviceAction(request);
 
-            log.info("✅ Command sent successfully to Hub Router");
+            log.info("✅ Command sent to Hub Router");
 
         } catch (StatusRuntimeException e) {
-            log.error("gRPC error sending to Hub Router: Status={}", e.getStatus());
+            log.error("gRPC error: {}", e.getStatus());
         } catch (Exception e) {
             log.error("Error sending to Hub Router", e);
         }
