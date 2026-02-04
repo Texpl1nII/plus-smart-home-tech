@@ -9,7 +9,7 @@ aggregator:
     producer:
       bootstrap-servers: localhost:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: ru.yandex.practicum.kafka.serializer.serializer.GeneralAvroSerializer
+      value-serializer: ru.yandex.practicum.telemetry.aggregator.serializer.GeneralAvroSerializer
 
     consumer:
       bootstrap-servers: localhost:9092
@@ -17,7 +17,7 @@ aggregator:
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: ru.yandex.practicum.kafka.serializer.deserializer.SensorEventDeserializer
+      value-deserializer: ru.practicum.kafka.serializer.deserializer.SensorEventDeserializer
 
   topics:
     sensors-events: telemetry.sensors.v1

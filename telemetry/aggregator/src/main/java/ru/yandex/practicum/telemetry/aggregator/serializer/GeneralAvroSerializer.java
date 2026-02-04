@@ -1,4 +1,4 @@
-package ru.yandex.practicum.kafka.serializer.serializer;
+package ru.yandex.practicum.telemetry.aggregator.serializer;
 
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
