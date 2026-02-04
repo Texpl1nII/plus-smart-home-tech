@@ -70,24 +70,9 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
     }
 
     private void saveConditions(Scenario scenario, HubEventAvro event, ScenarioAddedEventAvro avro) {
-        log.info("🚨 SAVE CONDITIONS - DEBUG MODE 🚨");
-        log.info("Scenario: {} (ID: {}), Hub: {}",
-                scenario.getName(), scenario.getId(), scenario.getHubId());
-        log.info("Total conditions to save: {}", avro.getConditions().size());
+        log.info("Saving {} conditions...", avro.getConditions().size());
 
         for (ScenarioConditionAvro conditionAvro : avro.getConditions()) {
-            log.info("📝 Processing condition for sensor: {}", conditionAvro.getSensorId());
-
-            // ЛОГИРУЕМ СЫРЫЕ ДАННЫЕ ПЕРЕД ОБРАБОТКОЙ
-            log.info("  Raw type: {} (class: {})",
-                    conditionAvro.getType(), conditionAvro.getType().getClass().getName());
-            log.info("  Raw operation: {} (class: {})",
-                    conditionAvro.getOperation(), conditionAvro.getOperation().getClass().getName());
-            log.info("  Raw value: {} (class: {})",
-                    conditionAvro.getValue(),
-                    conditionAvro.getValue() != null ?
-                            conditionAvro.getValue().getClass().getName() : "null");
-
             // Ищем сенсор
             Sensor sensor = sensorRepository.findByIdAndHubId(
                             conditionAvro.getSensorId(), event.getHubId())
@@ -101,7 +86,7 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
             ConditionTypeAvro typeAvro = ConditionTypeAvro.valueOf(conditionAvro.getType().toString());
             ConditionOperationAvro operationAvro = ConditionOperationAvro.valueOf(conditionAvro.getOperation().toString());
 
-            log.info("✅ Converted: sensor={}, type={}, operation={}, value={}",
+            log.info("Saving condition: sensor={}, type={}, operation={}, value={}",
                     sensor.getId(), typeAvro, operationAvro, value);
 
             Condition condition = conditionRepository.save(
@@ -131,60 +116,43 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
 
     private Integer extractConditionValue(Object value) {
         if (value == null) {
-            log.warn("⚠️ Condition value is null, defaulting to 0");
+            log.warn("Condition value is null, defaulting to 0");
             return 0;
         }
 
-        log.info("🔍 EXTRACTING VALUE: {} (class: {})",
-                value, value.getClass().getName());
-
         try {
-            // 1. Boolean - для SWITCH и MOTION сенсоров
+            // 1. Boolean для SWITCH и MOTION сенсоров
             if (value instanceof Boolean) {
-                boolean boolVal = (Boolean) value;
-                log.info("🔍 Boolean detected: {} -> {}", boolVal, boolVal ? 1 : 0);
-                return boolVal ? 1 : 0;
+                return (Boolean) value ? 1 : 0;
             }
 
-            // 2. Integer - для числовых сенсоров
+            // 2. Integer для числовых сенсоров
             if (value instanceof Integer) {
-                log.info("🔍 Integer detected: {}", value);
                 return (Integer) value;
             }
 
-            // 3. Long - КРИТИЧЕСКО ВАЖНО! Avro может вернуть Long для boolean (0L или 1L)
+            // 3. Long (может приходить из Avro)
             if (value instanceof Long) {
-                long longVal = (Long) value;
-                log.info("🔍 Long detected: {} -> {}", longVal, (int) longVal);
-
-                // Если это boolean в виде Long
-                if (longVal == 0L || longVal == 1L) {
-                    return (int) longVal;
-                }
-                return (int) longVal;
+                return ((Long) value).intValue();
             }
 
             // 4. Другие числовые типы
             if (value instanceof Number) {
-                int numVal = ((Number) value).intValue();
-                log.info("🔍 Number detected: {} -> {}", value, numVal);
-                return numVal;
+                return ((Number) value).intValue();
             }
 
             // 5. Строковое представление
-            String strVal = value.toString().toLowerCase().trim();
-            log.info("🔍 String detected: '{}'", strVal);
-
-            if ("true".equals(strVal) || "1".equals(strVal)) {
+            String strVal = value.toString().toLowerCase();
+            if (strVal.equals("true")) {
                 return 1;
-            } else if ("false".equals(strVal) || "0".equals(strVal)) {
+            } else if (strVal.equals("false")) {
                 return 0;
             } else {
                 return Integer.parseInt(strVal);
             }
 
         } catch (Exception e) {
-            log.error("❌ Cannot convert value to Integer: {} (type: {})",
+            log.error("Cannot convert value to Integer: {} (type: {})",
                     value, value.getClass().getName(), e);
             return 0;
         }
@@ -201,19 +169,16 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                             "Sensor not found: " + actionAvro.getSensorId() +
                                     " for hub: " + event.getHubId()));
 
-            // ПРОСТОЕ ПРЕОБРАЗОВАНИЕ ТИПА
+            // ПРОСТОЕ ПРЕОБРАЗОВАНИЕ
             ActionTypeAvro typeAvro = ActionTypeAvro.valueOf(actionAvro.getType().toString());
 
-            // ОБРАБАТЫВАЕМ ЗНАЧЕНИЕ (может быть null)
-            Integer actionValue = actionAvro.getValue() != null ? actionAvro.getValue() : 0;
-
             log.info("Saving action: sensor={}, type={}, value={}",
-                    sensor.getId(), typeAvro, actionValue);
+                    sensor.getId(), typeAvro, actionAvro.getValue());
 
             Action action = actionRepository.save(
                     Action.builder()
                             .type(typeAvro)
-                            .value(actionValue)
+                            .value(actionAvro.getValue())
                             .build()
             );
 
