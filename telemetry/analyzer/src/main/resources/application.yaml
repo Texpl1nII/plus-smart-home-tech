@@ -50,9 +50,11 @@ analyzer:
 
 logging:
   level:
-    ru.yandex.practicum.telemetry.analyzer: DEBUG
-    ru.yandex.practicum.telemetry.analyzer.service: DEBUG
-    ru.yandex.practicum.telemetry.analyzer.processor: DEBUG
-    org.springframework.transaction: TRACE
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    ru.yandex.practicum.telemetry.analyzer: INFO
+    ru.yandex.practicum.telemetry.analyzer.service: INFO
+    ru.yandex.practicum.telemetry.analyzer.processor: INFO
+    ru.yandex.practicum.telemetry.analyzer.handler: INFO
+    ru.yandex.practicum.telemetry.analyzer.repository: INFO
+    org.springframework.transaction: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
