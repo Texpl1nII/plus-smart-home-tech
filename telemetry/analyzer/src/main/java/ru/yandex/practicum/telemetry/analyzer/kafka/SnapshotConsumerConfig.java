@@ -23,6 +23,7 @@ public class SnapshotConsumerConfig {
     private String valueDeserializer;
     private Boolean enableAutoCommit;
     private Integer timeOut;
+    private String autoOffsetReset;
 
     @Bean("snapshotKafkaConsumer")
     public KafkaConsumer<String, SensorsSnapshotAvro> snapshotKafkaConsumer() {
@@ -32,7 +33,7 @@ public class SnapshotConsumerConfig {
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer);
-        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
 
         return new KafkaConsumer<>(config);
     }

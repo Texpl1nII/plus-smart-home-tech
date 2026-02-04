@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public class HubEventProcessor implements Runnable {
 
     private final Consumer<String, HubEventAvro> hubConsumer;
-    private final Map<String, HubEventHandler> hubEventHandlers;
+    private final Map<Class<?>, HubEventHandler> hubEventHandlers;
 
     @Value("${analyzer.kafka.topics.hub-events}")
     private String hubEventsTopic;
@@ -30,7 +30,18 @@ public class HubEventProcessor implements Runnable {
     public HubEventProcessor(KafkaClient kafkaClient, List<HubEventHandler> hubEventHandlers) {
         this.hubConsumer = kafkaClient.getHubConsumer();
         this.hubEventHandlers = hubEventHandlers.stream()
-                .collect(Collectors.toMap(HubEventHandler::getEventType, Function.identity()));
+                .collect(Collectors.toMap(
+                        handler -> getPayloadClass(handler.getEventType()),
+                        Function.identity()
+                ));
+    }
+
+    private Class<?> getPayloadClass(String eventType) {
+        try {
+            return Class.forName("ru.yandex.practicum.kafka.telemetry.event." + eventType + "Avro");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException("Unknown event type: " + eventType);
+        }
     }
 
     @Override
@@ -42,25 +53,29 @@ public class HubEventProcessor implements Runnable {
                 ConsumerRecords<String, HubEventAvro> records = hubConsumer.poll(Duration.ofMillis(1000));
                 if (!records.isEmpty()) {
                     for (ConsumerRecord<String, HubEventAvro> record : records) {
-                        HubEventAvro event = record.value();
-                        String eventPayloadName = event.getPayload().getClass().getSimpleName();
-                        HubEventHandler eventHandler;
+                        try {
+                            HubEventAvro event = record.value();
+                            Object payload = event.getPayload();
+                            HubEventHandler eventHandler = hubEventHandlers.get(payload.getClass());
 
-                        if (hubEventHandlers.containsKey(eventPayloadName)) {
-                            eventHandler = hubEventHandlers.get(eventPayloadName);
-                        } else {
-                            throw new IllegalArgumentException("Подходящий handler не найден");
+                            if (eventHandler != null) {
+                                eventHandler.handle(event);
+                            } else {
+                                log.warn("No handler found for event type: {}", payload.getClass().getSimpleName());
+                                // Просто логируем, не бросаем исключение
+                            }
+                        } catch (Exception e) {
+                            log.error("Error processing Kafka record: {}", e.getMessage(), e);
+                            // Продолжаем обработку следующих сообщений
                         }
-                        eventHandler.handle(event);
-
                     }
                     hubConsumer.commitAsync();
                 }
             }
         } catch (WakeupException ignored) {
-
+            log.info("WakeupException caught, shutting down HubEventProcessor");
         } catch (Exception e) {
-            log.error("Ошибка при обработке событий", e);
+            log.error("Error in HubEventProcessor", e);
         } finally {
             try {
                 hubConsumer.commitSync();

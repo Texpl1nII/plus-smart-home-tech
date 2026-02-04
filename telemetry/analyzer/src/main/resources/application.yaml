@@ -35,6 +35,7 @@ analyzer:
         group-id: events.analyzer
         enable-auto-commit: false
         time-out: 1000
+        auto-offset-reset: earliest
       snapshot:
         bootstrap-server: localhost:9092
         group-id: snapshot.analyzer
@@ -42,6 +43,7 @@ analyzer:
         value-deserializer: ru.yandex.practicum.telemetry.analyzer.deserializer.SensorsSnapshotDeserializer
         enable-auto-commit: false
         time-out: 500
+        auto-offset-reset: earliest
     topics:
       hub-events: telemetry.hubs.v1
       snapshots-events: telemetry.snapshots.v1

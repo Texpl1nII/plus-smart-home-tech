@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.analyzer.exception;
+package exception;
 
 public class DeserializationException extends RuntimeException {
     public DeserializationException(String message, Throwable ex) {

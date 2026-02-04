@@ -9,7 +9,9 @@ import ru.yandex.practicum.telemetry.analyzer.handler.HubEventHandler;
 import ru.yandex.practicum.telemetry.analyzer.model.Sensor;
 import ru.yandex.practicum.telemetry.analyzer.repository.SensorRepository;
 
-@Slf4j  // ← ДОБАВЬТЕ ЭТО!
+import java.util.Optional;
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DeviceAddedEventHandler implements HubEventHandler {
@@ -26,14 +28,23 @@ public class DeviceAddedEventHandler implements HubEventHandler {
         log.info("🟢 DEVICE_ADDED EVENT START");
 
         DeviceAddedEventAvro deviceAddedEventAvro = (DeviceAddedEventAvro) event.getPayload();
-        log.info("Saving sensor: id={}, hub={}, type={}",
-                deviceAddedEventAvro.getId(),
-                event.getHubId(),
-                deviceAddedEventAvro.getType());
+        String sensorId = deviceAddedEventAvro.getId();
+        String hubId = event.getHubId();
+
+        log.info("Processing device added: id={}, hub={}, type={}",
+                sensorId, hubId, deviceAddedEventAvro.getType());
+
+        Optional<Sensor> existingSensor = repository.findByIdAndHubId(sensorId, hubId);
+
+        if (existingSensor.isPresent()) {
+            log.info("Sensor already exists: id={}, hub={}", sensorId, hubId);
+            log.info("🟢 DEVICE_ADDED EVENT END (already exists)");
+            return;
+        }
 
         Sensor sensor = Sensor.builder()
-                .id(deviceAddedEventAvro.getId())
-                .hubId(event.getHubId())
+                .id(sensorId)
+                .hubId(hubId)
                 .build();
 
         Sensor saved = repository.save(sensor);

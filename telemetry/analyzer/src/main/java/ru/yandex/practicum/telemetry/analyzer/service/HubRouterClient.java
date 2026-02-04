@@ -27,9 +27,7 @@ public class HubRouterClient {
     public HubRouterClient(@GrpcClient("hub-router")
                            HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient) {
         this.hubRouterClient = hubRouterClient;
-
-        // Проверяем подключение при создании
-        checkGrpcConnection();
+        log.info("HubRouterClient initialized");
     }
 
     private void checkGrpcConnection() {
@@ -72,29 +70,24 @@ public class HubRouterClient {
     }
 
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
-        log.info("🎯 === HUB ROUTER CLIENT ===");
-        log.info("Scenario: '{}'", scenarioAction.getScenario().getName());
-        log.info("Hub: {}", scenarioAction.getScenario().getHubId());
-        log.info("Sensor: {}", scenarioAction.getSensor().getId());
-        log.info("Action type: {}", scenarioAction.getAction().getType());
-        log.info("Action value: {}", scenarioAction.getAction().getValue());
+        log.debug("Sending device request for scenario: '{}', hub: {}",
+                scenarioAction.getScenario().getName(),
+                scenarioAction.getScenario().getHubId());
 
         try {
             DeviceActionRequest request = toDeviceActionRequest(scenarioAction);
-            log.info("📡 gRPC Request: {}", request);
 
             // Отправляем с таймаутом
             hubRouterClient
                     .withDeadlineAfter(5, TimeUnit.SECONDS)
                     .handleDeviceAction(request);
 
-            log.info("✅ SUCCESS: Command sent to Hub Router!");
+            log.debug("Command sent successfully to Hub Router");
 
         } catch (StatusRuntimeException e) {
-            log.error("❌ gRPC ERROR: Status={}, Description={}",
-                    e.getStatus(), e.getStatus().getDescription());
+            log.error("gRPC error sending to Hub Router: Status={}", e.getStatus());
         } catch (Exception e) {
-            log.error("❌ ERROR sending to Hub Router", e);
+            log.error("Error sending to Hub Router", e);
         }
     }
 
