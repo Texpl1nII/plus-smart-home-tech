@@ -34,13 +34,26 @@ public class HubEventProcessor implements Runnable {
                         handler -> getPayloadClass(handler.getEventType()),
                         Function.identity()
                 ));
+        log.info("Registered handlers for event types: {}",
+                this.hubEventHandlers.keySet().stream()
+                        .map(Class::getSimpleName)
+                        .collect(Collectors.toList()));
     }
 
     private Class<?> getPayloadClass(String eventType) {
         try {
-            return Class.forName("ru.yandex.practicum.kafka.telemetry.event." + eventType + "Avro");
+            // Убираем "Avro" из конца, если оно уже есть
+            String className = eventType;
+            if (className.endsWith("Avro")) {
+                className = "ru.yandex.practicum.kafka.telemetry.event." + className;
+            } else {
+                className = "ru.yandex.practicum.kafka.telemetry.event." + className + "Avro";
+            }
+
+            log.debug("Loading class: {}", className);
+            return Class.forName(className);
         } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException("Unknown event type: " + eventType);
+            throw new IllegalArgumentException("Unknown event type: " + eventType, e);
         }
     }
 
@@ -49,9 +62,12 @@ public class HubEventProcessor implements Runnable {
         Runtime.getRuntime().addShutdownHook(new Thread(hubConsumer::wakeup));
         try {
             hubConsumer.subscribe(List.of(hubEventsTopic));
+            log.info("Subscribed to topic: {}", hubEventsTopic);
+
             while (true) {
                 ConsumerRecords<String, HubEventAvro> records = hubConsumer.poll(Duration.ofMillis(1000));
                 if (!records.isEmpty()) {
+                    log.info("Received {} hub event records", records.count());
                     for (ConsumerRecord<String, HubEventAvro> record : records) {
                         try {
                             HubEventAvro event = record.value();
@@ -59,6 +75,7 @@ public class HubEventProcessor implements Runnable {
                             HubEventHandler eventHandler = hubEventHandlers.get(payload.getClass());
 
                             if (eventHandler != null) {
+                                log.debug("Processing event with handler: {}", eventHandler.getClass().getSimpleName());
                                 eventHandler.handle(event);
                             } else {
                                 log.warn("No handler found for event type: {}", payload.getClass().getSimpleName());
