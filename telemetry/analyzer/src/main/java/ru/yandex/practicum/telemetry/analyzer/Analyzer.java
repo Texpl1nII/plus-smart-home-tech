@@ -29,6 +29,8 @@ public class Analyzer {
         log.info("HubEventProcessor thread started");
 
         log.info("Starting SnapshotEventProcessor...");
-        snapshotEventProcessor.start();  // ← Метод start() из SnapshotEventProcessor
+        Thread snapshotThread = new Thread(() -> snapshotEventProcessor.start());
+        snapshotThread.setName("SnapshotEventHandlerThread");
+        snapshotThread.start();
     }
 }
