@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.ConfigurableApplicationContext;
 import ru.yandex.practicum.telemetry.analyzer.processor.HubEventProcessor;
-import ru.yandex.practicum.telemetry.analyzer.processor.SnapshotEventProcessor;  // ← ПРАВИЛЬНЫЙ ИМПОРТ!
+import ru.yandex.practicum.telemetry.analyzer.processor.SnapshotEventProcessor;
 
 @Slf4j
 @SpringBootApplication
@@ -18,19 +18,24 @@ public class Analyzer {
         ConfigurableApplicationContext context =
                 SpringApplication.run(Analyzer.class, args);
 
-        final HubEventProcessor hubEventProcessor =
-                context.getBean(HubEventProcessor.class);
-        SnapshotEventProcessor snapshotEventProcessor =  // ← ИЗМЕНИЛИ ТИП!
-                context.getBean(SnapshotEventProcessor.class);
+        try {
+            final HubEventProcessor hubEventProcessor =
+                    context.getBean(HubEventProcessor.class);
 
-        Thread hubEventsThread = new Thread(hubEventProcessor);
-        hubEventsThread.setName("HubEventHandlerThread");
-        hubEventsThread.start();
-        log.info("HubEventProcessor thread started");
+            final SnapshotEventProcessor snapshotEventProcessor =
+                    context.getBean(SnapshotEventProcessor.class);
 
-        log.info("Starting SnapshotEventProcessor...");
-        Thread snapshotThread = new Thread(() -> snapshotEventProcessor.start());
-        snapshotThread.setName("SnapshotEventHandlerThread");
-        snapshotThread.start();
+            // Запускаем оба процессора в отдельных потоках
+            Thread hubEventsThread = new Thread(hubEventProcessor, "HubEventProcessor");
+            hubEventsThread.start();
+            log.info("HubEventProcessor thread started");
+
+            Thread snapshotThread = new Thread(snapshotEventProcessor::start, "SnapshotEventProcessor");
+            snapshotThread.start();
+            log.info("SnapshotEventProcessor thread started");
+
+        } catch (Exception e) {
+            log.error("❌ Error starting processors", e);
+        }
     }
 }

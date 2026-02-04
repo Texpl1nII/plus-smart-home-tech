@@ -82,21 +82,9 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
 
             Integer value = extractConditionValue(conditionAvro.getValue());
 
-            // КРИТИЧНО: преобразуем тип если нужно
-            ConditionTypeAvro typeAvro;
-            ConditionOperationAvro operationAvro;
-
-            try {
-                // Пробуем напрямую - если это уже Avro enum
-                typeAvro = (ConditionTypeAvro) conditionAvro.getType();
-                operationAvro = (ConditionOperationAvro) conditionAvro.getOperation();
-                log.debug("Direct cast to Avro enums successful");
-            } catch (ClassCastException e) {
-                // Если не получается, преобразуем через строку
-                log.warn("ClassCastException, converting via string...");
-                typeAvro = convertToConditionTypeAvro(conditionAvro.getType());
-                operationAvro = convertToConditionOperationAvro(conditionAvro.getOperation());
-            }
+            // ПРЕОБРАЗУЕМ ТИП - УПРОЩЕННЫЙ ВАРИАНТ
+            ConditionTypeAvro typeAvro = ConditionTypeAvro.valueOf(conditionAvro.getType().toString());
+            ConditionOperationAvro operationAvro = ConditionOperationAvro.valueOf(conditionAvro.getOperation().toString());
 
             log.info("Saving condition: sensor={}, type={}, operation={}, value={}",
                     sensor.getId(), typeAvro, operationAvro, value);
@@ -126,18 +114,48 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
         }
     }
 
-    private ConditionTypeAvro convertToConditionTypeAvro(Object type) {
-        if (type instanceof ConditionTypeAvro) {
-            return (ConditionTypeAvro) type;
+    private Integer extractConditionValue(Object value) {
+        if (value == null) {
+            log.warn("Condition value is null, defaulting to 0");
+            return 0;
         }
-        return ConditionTypeAvro.valueOf(type.toString());
-    }
 
-    private ConditionOperationAvro convertToConditionOperationAvro(Object operation) {
-        if (operation instanceof ConditionOperationAvro) {
-            return (ConditionOperationAvro) operation;
+        try {
+            // 1. Boolean для SWITCH и MOTION сенсоров
+            if (value instanceof Boolean) {
+                return (Boolean) value ? 1 : 0;
+            }
+
+            // 2. Integer для числовых сенсоров
+            if (value instanceof Integer) {
+                return (Integer) value;
+            }
+
+            // 3. Long (может приходить из Avro)
+            if (value instanceof Long) {
+                return ((Long) value).intValue();
+            }
+
+            // 4. Другие числовые типы
+            if (value instanceof Number) {
+                return ((Number) value).intValue();
+            }
+
+            // 5. Строковое представление
+            String strVal = value.toString().toLowerCase();
+            if (strVal.equals("true")) {
+                return 1;
+            } else if (strVal.equals("false")) {
+                return 0;
+            } else {
+                return Integer.parseInt(strVal);
+            }
+
+        } catch (Exception e) {
+            log.error("Cannot convert value to Integer: {} (type: {})",
+                    value, value.getClass().getName(), e);
+            return 0;
         }
-        return ConditionOperationAvro.valueOf(operation.toString());
     }
 
     private void saveActions(Scenario scenario, HubEventAvro event, ScenarioAddedEventAvro avro) {
@@ -151,12 +169,8 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
                             "Sensor not found: " + actionAvro.getSensorId() +
                                     " for hub: " + event.getHubId()));
 
-            ActionTypeAvro typeAvro;
-            try {
-                typeAvro = (ActionTypeAvro) actionAvro.getType();
-            } catch (ClassCastException e) {
-                typeAvro = convertToActionTypeAvro(actionAvro.getType());
-            }
+            // ПРОСТОЕ ПРЕОБРАЗОВАНИЕ
+            ActionTypeAvro typeAvro = ActionTypeAvro.valueOf(actionAvro.getType().toString());
 
             log.info("Saving action: sensor={}, type={}, value={}",
                     sensor.getId(), typeAvro, actionAvro.getValue());
@@ -182,52 +196,6 @@ public class ScenarioAddedEventHandler implements HubEventHandler {
             );
 
             log.info("✅ Action saved with ID: {}", action.getId());
-        }
-    }
-
-    private ActionTypeAvro convertToActionTypeAvro(Object type) {
-        String typeStr = type.toString();
-        try {
-            return ActionTypeAvro.valueOf(typeStr);
-        } catch (IllegalArgumentException e) {
-            return switch (typeStr) {
-                case "ACTIVATE" -> ActionTypeAvro.ACTIVATE;
-                case "DEACTIVATE" -> ActionTypeAvro.DEACTIVATE;
-                case "INVERSE" -> ActionTypeAvro.INVERSE;
-                case "SET_VALUE" -> ActionTypeAvro.SET_VALUE;
-                default -> throw new IllegalArgumentException("Unknown action type: " + typeStr);
-            };
-        }
-    }
-
-    private Integer extractConditionValue(Object value) {
-        if (value == null) {
-            return 0;
-        }
-
-        try {
-            if (value instanceof Integer) {
-                return (Integer) value;
-            } else if (value instanceof Boolean) {
-                return (Boolean) value ? 1 : 0;
-            } else if (value instanceof Long) {
-                return ((Long) value).intValue();
-            } else if (value instanceof Number) {
-                return ((Number) value).intValue();
-            } else {
-                String strVal = value.toString().toLowerCase();
-                if (strVal.equals("true") || strVal.equals("1")) {
-                    return 1;
-                } else if (strVal.equals("false") || strVal.equals("0")) {
-                    return 0;
-                } else {
-                    return Integer.parseInt(strVal);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Cannot convert value to Integer: {} (type: {})",
-                    value, value.getClass().getName(), e);
-            return 0;
         }
     }
 }
