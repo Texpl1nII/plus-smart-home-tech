@@ -28,41 +28,38 @@ public class HubRouterClient {
                            HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient) {
         this.hubRouterClient = hubRouterClient;
         log.info("HubRouterClient initialized");
-        // ПРОВЕРЯЕМ СОЕДИНЕНИЕ
-        checkGrpcConnection();
-    }
-
-    private void checkGrpcConnection() {
-        try {
-            log.info("🔍 Checking gRPC connection to Hub Router...");
-
-            // Простая проверка без отправки реального запроса
-            hubRouterClient.withDeadlineAfter(2, TimeUnit.SECONDS);
-            log.info("✅ gRPC stub is ready");
-
-        } catch (Exception e) {
-            log.error("❌ gRPC connection failed: {}", e.getMessage());
-        }
     }
 
     public void sendDeviceRequest(ScenarioAction scenarioAction) {
-        log.info("🚀 Sending device request for scenario: '{}', hub: {}",
+        log.info("🚀 Sending device request for scenario: '{}', hub: {}, sensor: {}",
                 scenarioAction.getScenario().getName(),
-                scenarioAction.getScenario().getHubId());
+                scenarioAction.getScenario().getHubId(),
+                scenarioAction.getSensor().getId());
 
         try {
             DeviceActionRequest request = toDeviceActionRequest(scenarioAction);
 
+            log.debug("gRPC request: hubId={}, scenarioName={}, actionType={}, value={}",
+                    request.getHubId(),
+                    request.getScenarioName(),
+                    request.getAction().getType(),
+                    request.getAction().hasValue() ? request.getAction().getValue() : "null");
+
+            // Выполняем вызов с таймаутом
             hubRouterClient
                     .withDeadlineAfter(5, TimeUnit.SECONDS)
                     .handleDeviceAction(request);
 
-            log.info("✅ Command sent to Hub Router");
+            log.info("✅ Command sent to Hub Router successfully");
 
         } catch (StatusRuntimeException e) {
-            log.error("gRPC error: {}", e.getStatus());
+            log.error("❌ gRPC StatusRuntimeException: status={}, description={}, cause={}",
+                    e.getStatus().getCode(),
+                    e.getStatus().getDescription(),
+                    e.getCause() != null ? e.getCause().getMessage() : "none");
+            log.error("Full gRPC error:", e);
         } catch (Exception e) {
-            log.error("Error sending to Hub Router", e);
+            log.error("❌ Unexpected error sending to Hub Router", e);
         }
     }
 
