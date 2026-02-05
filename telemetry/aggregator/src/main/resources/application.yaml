@@ -17,7 +17,7 @@ aggregator:
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: ru.yandex.practicum.telemetry.aggregator.deserializer.SensorEventDeserializer
+      value-deserializer: ru.practicum.kafka.serializer.deserializer.SensorEventDeserializer
 
   topics:
     sensors-events: telemetry.sensors.v1

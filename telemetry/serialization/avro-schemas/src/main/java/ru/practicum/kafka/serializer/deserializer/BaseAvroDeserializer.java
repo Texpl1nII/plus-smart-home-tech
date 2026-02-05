@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.aggregator.deserializer;
+package ru.practicum.kafka.serializer.deserializer;
 
 import org.apache.avro.Schema;
 import org.apache.avro.io.BinaryDecoder;
@@ -7,7 +7,7 @@ import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.common.serialization.Deserializer;
-import ru.yandex.practicum.telemetry.aggregator.exception.DeserializationException;
+import ru.practicum.kafka.serializer.exception.DeserializationException;
 
 public class BaseAvroDeserializer<T extends SpecificRecordBase> implements Deserializer<T> {
 
@@ -32,7 +32,7 @@ public class BaseAvroDeserializer<T extends SpecificRecordBase> implements Deser
             }
             return null;
         } catch (Exception e) {
-            throw new DeserializationException("Ошибка десереализации данных из топика [" + topic + "]", e);
+            throw new DeserializationException("Ошибка десереализации данных топика " + topic, e);
         }
     }
 

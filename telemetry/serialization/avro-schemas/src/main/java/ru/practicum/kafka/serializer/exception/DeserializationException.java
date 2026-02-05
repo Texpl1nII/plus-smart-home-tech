@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.aggregator.exception;
+package ru.practicum.kafka.serializer.exception;
 
 public class DeserializationException extends RuntimeException {
     public DeserializationException(String message, Throwable ex) {
