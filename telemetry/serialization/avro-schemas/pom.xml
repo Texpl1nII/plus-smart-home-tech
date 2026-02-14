@@ -11,44 +11,64 @@
 
     <artifactId>avro-schemas</artifactId>
 
+    <properties>
+        <avro.version>1.11.3</avro.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
+            <version>${avro.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
+            <version>3.6.1</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
             </plugin>
 
+            <!-- Avro Maven Plugin - ИСПРАВЛЕННЫЙ -->
             <plugin>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro-maven-plugin</artifactId>
+                <version>${avro.version}</version>
                 <executions>
                     <execution>
-                        <id>schemas</id>
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>idl-protocol</goal>
                         </goals>
                         <configuration>
+                            <!-- Указываем директорию с IDL файлами -->
                             <sourceDirectory>${project.basedir}/src/main/avro/</sourceDirectory>
-                            <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                            <!-- Куда положить сгенерированные Java файлы -->
+                            <outputDirectory>${project.build.directory}/generated-sources/avro</outputDirectory>
                             <stringType>String</stringType>
+                            <!-- УДАЛИТЕ блок protocolFiles, оставьте только sourceDirectory -->
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
 
+            <!-- Build Helper для добавления сгенерированных исходников -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -62,7 +82,7 @@
                         </goals>
                         <configuration>
                             <sources>
-                                <source>${project.build.directory}/generated-sources</source>
+                                <source>${project.build.directory}/generated-sources/avro</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -70,5 +90,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
