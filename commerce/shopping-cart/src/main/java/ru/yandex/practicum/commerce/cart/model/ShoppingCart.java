@@ -24,6 +24,7 @@ public class ShoppingCart {
     private String userId;
 
     @Column(name = "active", nullable = false)
+    @Builder.Default  // <-- Добавьте эту аннотацию
     private boolean active = true;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
