@@ -20,12 +20,10 @@ public class StoreController {
 
     private final StoreService storeService;
 
-    // Публичные эндпоинты для клиентов
     @GetMapping("/products")
-    public List<ProductDto> getProductsByCategory(
+    public List<ProductDto> getProducts(
             @RequestParam(required = false) ProductCategory category) {
         log.info("GET /products with category: {}", category);
-
         if (category != null) {
             return storeService.getProductsByCategory(category);
         }
@@ -40,8 +38,8 @@ public class StoreController {
 
     @PostMapping("/products")
     @ResponseStatus(HttpStatus.CREATED)
-    public ProductDto createProduct(@Valid @RequestBody ProductDto productDto) {
-        log.info("POST /products - creating product: {}", productDto.getProductName());
+    public ProductDto addProduct(@Valid @RequestBody ProductDto productDto) {
+        log.info("POST /products - adding product: {}", productDto.getProductName());
         return storeService.createProduct(productDto);
     }
 
@@ -49,23 +47,24 @@ public class StoreController {
     public ProductDto updateProduct(
             @PathVariable UUID productId,
             @Valid @RequestBody ProductDto productDto) {
-        log.info("PUT /products/{} - updating product", productId);
+        log.info("PUT /products/{}", productId);
         return storeService.updateProduct(productId, productDto);
     }
 
     @DeleteMapping("/products/{productId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteProduct(@PathVariable UUID productId) {
-        log.info("DELETE /products/{} - deactivating product", productId);
+        log.info("DELETE /products/{}", productId);
         storeService.deactivateProduct(productId);
     }
 
     @PatchMapping("/products/{productId}/quantity")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void updateProductQuantity(
+    @ResponseStatus(HttpStatus.OK)
+    public ProductDto updateQuantity(
             @PathVariable UUID productId,
             @RequestParam Integer quantity) {
-        log.info("PATCH /products/{}/quantity - new quantity: {}", productId, quantity);
+        log.info("PATCH /products/{}/quantity - quantity: {}", productId, quantity);
         storeService.updateProductQuantity(productId, quantity);
+        return storeService.getProductById(productId);
     }
 }

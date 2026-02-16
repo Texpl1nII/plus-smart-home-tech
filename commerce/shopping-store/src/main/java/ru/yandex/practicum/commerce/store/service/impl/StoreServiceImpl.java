@@ -97,13 +97,16 @@ public class StoreServiceImpl implements StoreService {
     @Override
     @Transactional
     public void updateProductQuantity(UUID productId, Integer newQuantity) {
-        log.info("Updating quantity for product {}: {}", productId, newQuantity);
+        log.info("Updating quantity for product {} to {}", productId, newQuantity);
 
-        Product product = findActiveProductById(productId);
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(
+                        "Product not found with id: " + productId));
+
         product.setQuantity(newQuantity);
         productRepository.save(product);
 
-        log.info("Product quantity updated");
+        log.info("Product quantity updated successfully");
     }
 
     private Product findActiveProductById(UUID productId) {

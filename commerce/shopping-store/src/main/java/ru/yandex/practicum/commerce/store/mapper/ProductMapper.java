@@ -3,15 +3,14 @@ package ru.yandex.practicum.commerce.store.mapper;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
+import ru.yandex.practicum.commerce.dto.enums.ProductStatus;
 import ru.yandex.practicum.commerce.store.model.Product;
 
 @Component
 public class ProductMapper {
 
     public ProductDto toDto(Product product) {
-        if (product == null) {
-            return null;
-        }
+        if (product == null) return null;
 
         return ProductDto.builder()
                 .productId(product.getId())
@@ -26,9 +25,7 @@ public class ProductMapper {
     }
 
     public Product toEntity(ProductDto dto) {
-        if (dto == null) {
-            return null;
-        }
+        if (dto == null) return null;
 
         return Product.builder()
                 .id(dto.getProductId())
@@ -36,12 +33,13 @@ public class ProductMapper {
                 .description(dto.getDescription())
                 .category(dto.getCategory())
                 .price(dto.getPrice())
-                .status(dto.getStatus())
+                .status(dto.getStatus() != null ? dto.getStatus() : ProductStatus.ACTIVE)
+                .quantity(0)  // начальное количество
                 .imageUrl(dto.getImageUrl())
                 .build();
     }
 
-    private AvailabilityStatus calculateAvailability(Integer quantity) {
+    public AvailabilityStatus calculateAvailability(Integer quantity) {
         if (quantity == null || quantity <= 0) {
             return AvailabilityStatus.ENDED;
         } else if (quantity < 10) {
