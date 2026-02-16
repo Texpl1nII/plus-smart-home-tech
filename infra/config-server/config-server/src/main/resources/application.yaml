@@ -22,8 +22,3 @@ eureka:
     fetchRegistry: true
   instance:
     preferIpAddress: true
-
-logging:
-  level:
-    org.springframework.cloud.config: DEBUG
-    org.springframework.cloud.netflix.eureka: DEBUG
