@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: discovery-server
+
+server:
+  port: 8761
+
+eureka:
+  instance:
+    hostname: localhost
+    preferIpAddress: false
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
+  client:
+    registerWithEureka: false      # Сервер не регистрируется сам в себе
+    fetchRegistry: false           # Серверу не нужно получать реестр
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
+  server:
+    enable-self-preservation: true  # Включаем самосохранение для production
+    eviction-interval-timer-in-ms: 60000  # Проверка истекших регистраций каждые 60 секунд
+    renewal-percent-threshold: 0.85  # Порог для режима самосохранения
+
+# Для мониторинга
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.netflix.eureka: DEBUG
+    com.netflix.discovery: DEBUG
+    org.springframework.cloud.netflix.eureka: DEBUG
