@@ -38,6 +38,13 @@
                 <configuration>
                     <mainClass>ru.yandex.practicum.infra.config.ConfigServer</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

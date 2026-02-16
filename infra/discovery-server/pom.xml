@@ -33,6 +33,13 @@
                 <configuration>
                     <mainClass>ru.yandex.practicum.infra.discovery.DiscoveryServer</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
