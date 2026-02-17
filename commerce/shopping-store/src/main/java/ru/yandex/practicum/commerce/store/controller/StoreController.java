@@ -80,13 +80,25 @@ public class StoreController {
 
     private Sort parseSort(String[] sort) {
         if (sort == null || sort.length == 0) {
-            return Sort.by("productName").ascending();
+            return Sort.by("name").ascending();  // было "productName", стало "name"
         }
 
         Sort.Order[] orders = new Sort.Order[sort.length];
         for (int i = 0; i < sort.length; i++) {
             String[] parts = sort[i].split(",");
             String property = parts[0];
+
+            // Маппинг полей из спецификации в имена полей модели
+            if ("productName".equals(property)) {
+                property = "name";
+            } else if ("productCategory".equals(property)) {
+                property = "category";
+            } else if ("productState".equals(property)) {
+                property = "status";
+            } else if ("quantityState".equals(property)) {
+                property = "availability";
+            }
+
             Sort.Direction direction = parts.length > 1 && "desc".equalsIgnoreCase(parts[1])
                     ? Sort.Direction.DESC : Sort.Direction.ASC;
             orders[i] = new Sort.Order(direction, property).ignoreCase();
