@@ -21,7 +21,6 @@ public class WarehouseController {
 
     private final WarehouseService warehouseService;
 
-    // Эндпоинты для администрации
     @PostMapping("/products")
     @ResponseStatus(HttpStatus.CREATED)
     public void addProductToWarehouse(@Valid @RequestBody WarehouseProductDto productDto) {
@@ -55,5 +54,19 @@ public class WarehouseController {
     public AddressDto getWarehouseAddress() {
         log.info("GET /warehouse/address");
         return warehouseService.getWarehouseAddress();
+    }
+
+    @PutMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public void addProductViaPut(@Valid @RequestBody WarehouseProductDto productDto) {
+        log.info("PUT /warehouse - adding product via PUT: {}", productDto.getProductId());
+        warehouseService.addProductToWarehouse(productDto);
+    }
+
+    @PostMapping("/add")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void addProductViaPostAdd(@Valid @RequestBody WarehouseProductDto productDto) {
+        log.info("POST /warehouse/add - adding product via POST/add: {}", productDto.getProductId());
+        warehouseService.addProductToWarehouse(productDto);
     }
 }

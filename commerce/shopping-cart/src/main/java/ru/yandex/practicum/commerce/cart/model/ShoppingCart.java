@@ -5,7 +5,6 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "shopping_carts")
@@ -24,7 +23,7 @@ public class ShoppingCart {
     private String userId;
 
     @Column(name = "active", nullable = false)
-    @Builder.Default  // <-- Добавьте эту аннотацию
+    @Builder.Default
     private boolean active = true;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)

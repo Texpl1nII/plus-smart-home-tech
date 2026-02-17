@@ -17,6 +17,5 @@ public class AddProductToCartRequest {
     @Positive(message = "Количество должно быть положительным")
     private Integer quantity;
 
-    @NotBlank(message = "Имя пользователя обязательно")
     private String username;
 }

@@ -21,7 +21,6 @@ public class StoreController {
 
     private final StoreService storeService;
 
-    // Публичные эндпоинты для клиентов
     @GetMapping("/products")
     public List<ProductDto> getProductsByCategory(
             @RequestParam(required = false) ProductCategory category) {
@@ -39,25 +38,13 @@ public class StoreController {
         return storeService.getProductById(productId);
     }
 
-    // Эндпоинты для администрации
     @PostMapping("/products")
     @ResponseStatus(HttpStatus.CREATED)
     public ProductDto createProduct(@Valid @RequestBody ProductDto productDto) {
         log.info("POST /products - creating product: {}", productDto.getProductName());
         log.info("Product status from request: {}", productDto.getStatus());
 
-        // НЕ меняем статус принудительно!
-        return storeService.createProduct(productDto);
-    }
-
-    // PUT для совместимости с тестами
-    @PutMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public ProductDto addProduct(@Valid @RequestBody ProductDto productDto) {
-        log.info("PUT / - creating product via PUT: {}", productDto.getProductName());
-        log.info("Product status from request: {}", productDto.getStatus());
-
-        // НЕ меняем статус принудительно!
+        // НЕ меняем статус принудительно - принимаем как есть
         return storeService.createProduct(productDto);
     }
 
@@ -83,5 +70,26 @@ public class StoreController {
             @RequestParam Integer quantity) {
         log.info("PATCH /products/{}/quantity - new quantity: {}", productId, quantity);
         storeService.updateProductQuantity(productId, quantity);
+    }
+
+    @PutMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductDto addProductViaPut(@Valid @RequestBody ProductDto productDto) {
+        log.info("PUT / - creating product via PUT: {}", productDto.getProductName());
+        log.info("Product status from request: {}", productDto.getStatus());
+
+        // НЕ меняем статус принудительно
+        return storeService.createProduct(productDto);
+    }
+
+    @GetMapping
+    public List<ProductDto> getProductsByCategoryViaParam(
+            @RequestParam(required = false) ProductCategory category) {
+        log.info("GET / with category param: {}", category);
+
+        if (category != null) {
+            return storeService.getProductsByCategory(category);
+        }
+        return storeService.getAllActiveProducts();
     }
 }

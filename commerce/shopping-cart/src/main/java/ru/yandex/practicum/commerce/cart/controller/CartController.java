@@ -66,4 +66,41 @@ public class CartController {
         log.info("DELETE /shopping-cart/{}/deactivate", username);
         cartService.deactivateCart(username);
     }
+
+    @PutMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ShoppingCartDto addProductViaPut(
+            @RequestParam String username,
+            @Valid @RequestBody AddProductToCartRequest request) {
+        log.info("PUT /shopping-cart?username={} - adding product via PUT", username);
+        request.setUsername(username);
+        return cartService.addProductToCart(username, request);
+    }
+
+    @PostMapping("/change-quantity")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changeQuantityViaPost(
+            @RequestParam String username,
+            @RequestParam UUID productId,
+            @RequestParam Integer quantity) {
+        log.info("POST /shopping-cart/change-quantity?username={}&productId={}&quantity={}",
+                username, productId, quantity);
+        cartService.updateProductQuantity(username, productId, quantity);
+    }
+
+    @PostMapping("/remove")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeViaPost(
+            @RequestParam String username,
+            @RequestParam UUID productId) {
+        log.info("POST /shopping-cart/remove?username={}&productId={}", username, productId);
+        cartService.removeProductFromCart(username, productId);
+    }
+
+    @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deactivateViaDelete(@RequestParam String username) {
+        log.info("DELETE /shopping-cart?username={} - deactivating cart", username);
+        cartService.deactivateCart(username);
+    }
 }
