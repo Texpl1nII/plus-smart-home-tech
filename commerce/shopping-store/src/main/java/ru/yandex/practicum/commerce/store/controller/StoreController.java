@@ -44,17 +44,20 @@ public class StoreController {
     @ResponseStatus(HttpStatus.CREATED)
     public ProductDto createProduct(@Valid @RequestBody ProductDto productDto) {
         log.info("POST /products - creating product: {}", productDto.getProductName());
+        log.info("Product status from request: {}", productDto.getStatus());
 
-        productDto.setStatus(ProductStatus.ACTIVE);
+        // НЕ меняем статус принудительно!
         return storeService.createProduct(productDto);
     }
 
+    // PUT для совместимости с тестами
     @PutMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ProductDto addProduct(@Valid @RequestBody ProductDto productDto) {
         log.info("PUT / - creating product via PUT: {}", productDto.getProductName());
+        log.info("Product status from request: {}", productDto.getStatus());
 
-        productDto.setStatus(ProductStatus.ACTIVE);
+        // НЕ меняем статус принудительно!
         return storeService.createProduct(productDto);
     }
 

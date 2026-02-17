@@ -37,7 +37,7 @@ public class ProductMapper {
                 .description(dto.getDescription())
                 .category(dto.getCategory())
                 .price(dto.getPrice())
-                .status(dto.getStatus() != null ? dto.getStatus() : ProductStatus.ACTIVE)
+                .status(dto.getStatus())  // ← используем статус из DTO как есть
                 .imageUrl(dto.getImageUrl())
                 .quantity(0) // начальное количество
                 .availability(dto.getAvailability() != null ? dto.getAvailability() : AvailabilityStatus.ENDED)
