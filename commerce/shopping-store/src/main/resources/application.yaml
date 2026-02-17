@@ -26,3 +26,8 @@ eureka:
 logging:
   level:
     ru.yandex.practicum.commerce: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet: DEBUG
+    org.springframework.web.bind.annotation: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
