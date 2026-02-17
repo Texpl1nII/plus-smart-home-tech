@@ -21,10 +21,12 @@ public class StoreController {
 
     private final StoreService storeService;
 
+    // Публичные эндпоинты для клиентов
     @GetMapping("/products")
-    public List<ProductDto> getProducts(
+    public List<ProductDto> getProductsByCategory(
             @RequestParam(required = false) ProductCategory category) {
         log.info("GET /products with category: {}", category);
+
         if (category != null) {
             return storeService.getProductsByCategory(category);
         }
@@ -37,10 +39,15 @@ public class StoreController {
         return storeService.getProductById(productId);
     }
 
+    // Эндпоинты для администрации
     @PostMapping("/products")
     @ResponseStatus(HttpStatus.CREATED)
-    public ProductDto addProduct(@Valid @RequestBody ProductDto productDto) {
-        log.info("POST /products - adding product: {}", productDto.getProductName());
+    public ProductDto createProduct(@Valid @RequestBody ProductDto productDto) {
+        log.info("POST /products - creating product: {}", productDto.getProductName());
+
+        // Принудительно устанавливаем ACTIVE при создании
+        productDto.setStatus(ProductStatus.ACTIVE);
+
         return storeService.createProduct(productDto);
     }
 
@@ -48,34 +55,23 @@ public class StoreController {
     public ProductDto updateProduct(
             @PathVariable UUID productId,
             @Valid @RequestBody ProductDto productDto) {
-        log.info("PUT /products/{}", productId);
+        log.info("PUT /products/{} - updating product", productId);
         return storeService.updateProduct(productId, productDto);
-    }
-
-    @PostMapping("/products")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ProductDto createProduct(@Valid @RequestBody ProductDto productDto) {
-        log.info("POST /products - creating product: {}", productDto.getProductName());
-
-        productDto.setStatus(ProductStatus.ACTIVE);
-
-        return storeService.createProduct(productDto);
     }
 
     @DeleteMapping("/products/{productId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteProduct(@PathVariable UUID productId) {
-        log.info("DELETE /products/{}", productId);
+        log.info("DELETE /products/{} - deactivating product", productId);
         storeService.deactivateProduct(productId);
     }
 
     @PatchMapping("/products/{productId}/quantity")
-    @ResponseStatus(HttpStatus.OK)
-    public ProductDto updateQuantity(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateProductQuantity(
             @PathVariable UUID productId,
             @RequestParam Integer quantity) {
-        log.info("PATCH /products/{}/quantity - quantity: {}", productId, quantity);
+        log.info("PATCH /products/{}/quantity - new quantity: {}", productId, quantity);
         storeService.updateProductQuantity(productId, quantity);
-        return storeService.getProductById(productId);
     }
 }
