@@ -6,6 +6,8 @@ import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductStatus;
 import ru.yandex.practicum.commerce.store.model.Product;
 
+import java.util.UUID;
+
 @Component
 public class ProductMapper {
 
@@ -25,17 +27,20 @@ public class ProductMapper {
     }
 
     public Product toEntity(ProductDto dto) {
-        if (dto == null) return null;
+        if (dto == null) {
+            return null;
+        }
 
         return Product.builder()
-                .id(dto.getProductId())
+                .id(dto.getProductId() != null ? dto.getProductId() : UUID.randomUUID())
                 .name(dto.getProductName())
                 .description(dto.getDescription())
                 .category(dto.getCategory())
                 .price(dto.getPrice())
                 .status(dto.getStatus() != null ? dto.getStatus() : ProductStatus.ACTIVE)
-                .quantity(0)  // начальное количество
                 .imageUrl(dto.getImageUrl())
+                .quantity(0) // начальное количество
+                .availability(dto.getAvailability() != null ? dto.getAvailability() : AvailabilityStatus.ENDED)
                 .build();
     }
 

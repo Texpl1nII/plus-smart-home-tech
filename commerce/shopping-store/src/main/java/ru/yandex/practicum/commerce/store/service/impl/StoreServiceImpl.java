@@ -59,8 +59,16 @@ public class StoreServiceImpl implements StoreService {
     public ProductDto createProduct(ProductDto productDto) {
         log.info("Creating new product: {}", productDto.getProductName());
 
+        if (productDto.getStatus() != ProductStatus.ACTIVE) {
+            log.warn("Forcing status to ACTIVE for new product");
+            productDto.setStatus(ProductStatus.ACTIVE);
+        }
+
         Product product = productMapper.toEntity(productDto);
-        product.setStatus(ProductStatus.ACTIVE);
+
+        if (product.getQuantity() == null) {
+            product.setQuantity(0);
+        }
 
         Product savedProduct = productRepository.save(product);
         log.info("Product created with id: {}", savedProduct.getId());

@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
+import ru.yandex.practicum.commerce.dto.enums.ProductStatus;
 import ru.yandex.practicum.commerce.store.service.StoreService;
 
 import java.util.List;
@@ -49,6 +50,16 @@ public class StoreController {
             @Valid @RequestBody ProductDto productDto) {
         log.info("PUT /products/{}", productId);
         return storeService.updateProduct(productId, productDto);
+    }
+
+    @PostMapping("/products")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductDto createProduct(@Valid @RequestBody ProductDto productDto) {
+        log.info("POST /products - creating product: {}", productDto.getProductName());
+
+        productDto.setStatus(ProductStatus.ACTIVE);
+
+        return storeService.createProduct(productDto);
     }
 
     @DeleteMapping("/products/{productId}")
