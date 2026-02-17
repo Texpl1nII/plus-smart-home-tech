@@ -45,9 +45,16 @@ public class StoreController {
     public ProductDto createProduct(@Valid @RequestBody ProductDto productDto) {
         log.info("POST /products - creating product: {}", productDto.getProductName());
 
-        // Принудительно устанавливаем ACTIVE при создании
         productDto.setStatus(ProductStatus.ACTIVE);
+        return storeService.createProduct(productDto);
+    }
 
+    @PutMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductDto addProduct(@Valid @RequestBody ProductDto productDto) {
+        log.info("PUT / - creating product via PUT: {}", productDto.getProductName());
+
+        productDto.setStatus(ProductStatus.ACTIVE);
         return storeService.createProduct(productDto);
     }
 
