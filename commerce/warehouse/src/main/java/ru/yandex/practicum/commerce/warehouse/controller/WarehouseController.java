@@ -3,15 +3,16 @@ package ru.yandex.practicum.commerce.warehouse.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.AddressDto;
-import ru.yandex.practicum.commerce.dto.ProductAvailabilityRequest;
-import ru.yandex.practicum.commerce.dto.ProductAvailabilityResponse;
-import ru.yandex.practicum.commerce.dto.WarehouseProductDto;
+import ru.yandex.practicum.commerce.dto.ShoppingCartDto;
+import ru.yandex.practicum.commerce.warehouse.AddProductToWarehouseRequest;
+import ru.yandex.practicum.commerce.warehouse.BookedProductsDto;
+import ru.yandex.practicum.commerce.warehouse.NewProductInWarehouseRequest;
+import ru.yandex.practicum.commerce.warehouse.exceptions.NoSpecifiedProductInWarehouseException;
+import ru.yandex.practicum.commerce.warehouse.exceptions.ProductInShoppingCartLowQuantityInWarehouse;
+import ru.yandex.practicum.commerce.warehouse.exceptions.SpecifiedProductAlreadyInWarehouseException;
 import ru.yandex.practicum.commerce.warehouse.service.WarehouseService;
-
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -21,52 +22,60 @@ public class WarehouseController {
 
     private final WarehouseService warehouseService;
 
-    @PostMapping("/products")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void addProductToWarehouse(@Valid @RequestBody WarehouseProductDto productDto) {
-        log.info("POST /warehouse/products - adding product: {}", productDto.getProductId());
-        warehouseService.addProductToWarehouse(productDto);
+    /**
+     * PUT /api/v1/warehouse - добавление нового товара на склад
+     */
+    @PutMapping
+    public void newProductInWarehouse(@Valid @RequestBody NewProductInWarehouseRequest request) {
+        log.info("PUT / - adding new product: {}", request.getProductId());
+
+        if (warehouseService.productExists(request.getProductId())) {
+            throw new SpecifiedProductAlreadyInWarehouseException(request.getProductId());
+        }
+
+        warehouseService.addNewProduct(request);
     }
 
-    @PatchMapping("/products/{productId}/quantity")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void addQuantity(
-            @PathVariable UUID productId,
-            @RequestParam Integer quantity) {
-        log.info("PATCH /warehouse/products/{}/quantity - adding quantity: {}", productId, quantity);
-        warehouseService.addQuantity(productId, quantity);
+    /**
+     * POST /api/v1/warehouse/check - проверка наличия товаров для корзины
+     */
+    @PostMapping("/check")
+    public BookedProductsDto checkProductQuantityEnoughForShoppingCart(
+            @RequestBody ShoppingCartDto cart) {
+
+        log.info("POST /check - checking cart: {}", cart.getShoppingCartId());
+
+        BookedProductsDto result = warehouseService.checkAvailabilityForCart(cart);
+
+        if (result == null) {
+            throw new ProductInShoppingCartLowQuantityInWarehouse(
+                    warehouseService.getUnavailableProducts(cart)
+            );
+        }
+
+        return result;
     }
 
-    @GetMapping("/products/{productId}")
-    public WarehouseProductDto getWarehouseProduct(@PathVariable UUID productId) {
-        log.info("GET /warehouse/products/{}", productId);
-        return warehouseService.getWarehouseProduct(productId);
+    /**
+     * POST /api/v1/warehouse/add - добавление количества товара
+     */
+    @PostMapping("/add")
+    public void addProductToWarehouse(@Valid @RequestBody AddProductToWarehouseRequest request) {
+        log.info("POST /add - adding quantity to product: {}", request.getProductId());
+
+        if (!warehouseService.productExists(request.getProductId())) {
+            throw new NoSpecifiedProductInWarehouseException(request.getProductId());
+        }
+
+        warehouseService.addProductQuantity(request);
     }
 
-    @PostMapping("/check-availability")
-    public ProductAvailabilityResponse checkAvailability(
-            @Valid @RequestBody ProductAvailabilityRequest request) {
-        log.info("POST /warehouse/check-availability for user: {}", request.getUsername());
-        return warehouseService.checkAvailability(request);
-    }
-
+    /**
+     * GET /api/v1/warehouse/address - получение адреса склада
+     */
     @GetMapping("/address")
     public AddressDto getWarehouseAddress() {
-        log.info("GET /warehouse/address");
+        log.info("GET /address");
         return warehouseService.getWarehouseAddress();
-    }
-
-    @PutMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public void addProductViaPut(@Valid @RequestBody WarehouseProductDto productDto) {
-        log.info("PUT /warehouse - adding product via PUT: {}", productDto.getProductId());
-        warehouseService.addProductToWarehouse(productDto);
-    }
-
-    @PostMapping("/add")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void addProductViaPostAdd(@Valid @RequestBody WarehouseProductDto productDto) {
-        log.info("POST /warehouse/add - adding product via POST/add: {}", productDto.getProductId());
-        warehouseService.addProductToWarehouse(productDto);
     }
 }

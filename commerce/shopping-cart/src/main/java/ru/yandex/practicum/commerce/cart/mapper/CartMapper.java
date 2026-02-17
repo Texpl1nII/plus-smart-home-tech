@@ -20,21 +20,23 @@ public class CartMapper {
             return null;
         }
 
-        Map<UUID, Integer> products = cart.getItems().stream()
+        // ⬇️ ИЗМЕНЕНО: теперь Map<UUID, Long> вместо Integer
+        Map<UUID, Long> products = cart.getItems().stream()
                 .collect(Collectors.toMap(
                         CartItem::getProductId,
-                        CartItem::getQuantity
+                        item -> item.getQuantity().longValue()  // Конвертируем Integer в Long
                 ));
 
         return ShoppingCartDto.builder()
                 .shoppingCartId(cart.getId())
                 .userId(cart.getUserId())
-                .products(products)
+                .products(products)  // теперь Map<UUID, Long>
                 .active(cart.isActive())
                 .build();
     }
 
-    public Map<UUID, Integer> toProductMap(ShoppingCart cart) {
+    // ⬇️ ИЗМЕНЕНО: возвращаем Map<UUID, Long>
+    public Map<UUID, Long> toProductMap(ShoppingCart cart) {
         if (cart == null || cart.getItems() == null) {
             return new HashMap<>();
         }
@@ -42,7 +44,7 @@ public class CartMapper {
         return cart.getItems().stream()
                 .collect(Collectors.toMap(
                         CartItem::getProductId,
-                        CartItem::getQuantity
+                        item -> item.getQuantity().longValue()  // Конвертируем Integer в Long
                 ));
     }
 }

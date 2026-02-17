@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.commerce.cart.ChangeProductQuantityRequest;
 import ru.yandex.practicum.commerce.client.WarehouseClient;
 import ru.yandex.practicum.commerce.cart.exception.CartNotActiveException;
 import ru.yandex.practicum.commerce.cart.exception.ProductNotFoundException;
@@ -19,6 +20,7 @@ import ru.yandex.practicum.commerce.dto.ProductAvailabilityResponse;
 import ru.yandex.practicum.commerce.dto.ShoppingCartDto;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,7 +38,6 @@ public class CartServiceImpl implements CartService {
     @Override
     public ShoppingCartDto getCart(String username) {
         log.info("Getting cart for user: {}", username);
-
         ShoppingCart cart = getOrCreateCart(username);
         return cartMapper.toDto(cart);
     }
@@ -48,8 +49,10 @@ public class CartServiceImpl implements CartService {
 
         ShoppingCart cart = getActiveCart(username);
 
+        // Проверяем наличие на складе
         checkAvailability(username, request.getProductId(), request.getQuantity());
 
+        // Ищем существующий товар в корзине
         CartItem existingItem = itemRepository.findByCartAndProductId(cart, request.getProductId())
                 .orElse(null);
 
@@ -62,7 +65,7 @@ public class CartServiceImpl implements CartService {
                     .cart(cart)
                     .productId(request.getProductId())
                     .quantity(request.getQuantity())
-                    .price(0.0) // Цена будет получена из shopping-store
+                    .price(0.0)
                     .build();
             cart.getItems().add(newItem);
             itemRepository.save(newItem);
@@ -134,6 +137,80 @@ public class CartServiceImpl implements CartService {
         cartRepository.save(cart);
 
         log.info("Cart deactivated");
+    }
+
+    @Override
+    @Transactional
+    public ShoppingCartDto addProductsToCart(String username, Map<UUID, Long> products) {
+        log.info("Adding multiple products to cart for user: {}", username);
+
+        ShoppingCart cart = getActiveCart(username);
+
+        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+            UUID productId = entry.getKey();
+            Integer quantity = entry.getValue().intValue();  // ⬅️ Конвертируем Long в Integer для внутреннего использования
+
+            // Проверяем наличие на складе
+            checkAvailability(username, productId, quantity);
+
+            CartItem existingItem = itemRepository.findByCartAndProductId(cart, productId)
+                    .orElse(null);
+
+            if (existingItem != null) {
+                existingItem.setQuantity(existingItem.getQuantity() + quantity);
+                itemRepository.save(existingItem);
+            } else {
+                CartItem newItem = CartItem.builder()
+                        .cart(cart)
+                        .productId(productId)
+                        .quantity(quantity)
+                        .price(0.0)
+                        .build();
+                cart.getItems().add(newItem);
+                itemRepository.save(newItem);
+            }
+        }
+
+        return cartMapper.toDto(cart);
+    }
+
+    @Override
+    @Transactional
+    public ShoppingCartDto removeProductsFromCart(String username, List<UUID> productIds) {
+        log.info("Removing multiple products from cart for user: {}", username);
+
+        ShoppingCart cart = getActiveCart(username);
+
+        for (UUID productId : productIds) {
+            itemRepository.findByCartAndProductId(cart, productId)
+                    .ifPresent(item -> {
+                        cart.getItems().remove(item);
+                        itemRepository.delete(item);
+                    });
+        }
+
+        return cartMapper.toDto(cart);
+    }
+
+    @Override
+    @Transactional
+    public ShoppingCartDto changeProductQuantity(String username, ChangeProductQuantityRequest request) {
+        log.info("Changing quantity for product {} to {} for user: {}",
+                request.getProductId(), request.getNewQuantity(), username);
+
+        ShoppingCart cart = getActiveCart(username);
+
+        CartItem item = itemRepository.findByCartAndProductId(cart, request.getProductId())
+                .orElseThrow(() -> new ProductNotFoundException(
+                        "Product not found in cart: " + request.getProductId()));
+
+        // Проверяем наличие на складе
+        checkAvailability(username, request.getProductId(), request.getNewQuantity().intValue());
+
+        item.setQuantity(request.getNewQuantity().intValue());
+        itemRepository.save(item);
+
+        return cartMapper.toDto(cart);
     }
 
     private ShoppingCart getActiveCart(String username) {

@@ -1,15 +1,24 @@
 package ru.yandex.practicum.commerce.store.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
-import ru.yandex.practicum.commerce.dto.enums.ProductStatus;
+import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface StoreService {
 
-    List<ProductDto> getProductsByCategory(ProductCategory category);
+    // Метод для пагинации (ОСНОВНОЙ)
+    Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable);
+
+    // Для обратной совместимости (если нужен список)
+    default List<ProductDto> getProductsByCategory(ProductCategory category) {
+        Page<ProductDto> page = getProductsByCategory(category, Pageable.unpaged());
+        return page.getContent();
+    }
 
     List<ProductDto> getAllActiveProducts();
 
@@ -19,7 +28,9 @@ public interface StoreService {
 
     ProductDto updateProduct(UUID productId, ProductDto productDto);
 
-    void deactivateProduct(UUID productId); // soft delete
+    boolean deactivateProduct(UUID productId);
 
     void updateProductQuantity(UUID productId, Integer newQuantity);
+
+    boolean setProductQuantityState(SetProductQuantityStateRequest request);
 }

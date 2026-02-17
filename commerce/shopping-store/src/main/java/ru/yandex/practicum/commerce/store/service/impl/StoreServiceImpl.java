@@ -2,11 +2,15 @@ package ru.yandex.practicum.commerce.store.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.commerce.dto.ProductDto;
+import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
 import ru.yandex.practicum.commerce.dto.enums.ProductStatus;
+import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.exception.ProductNotFoundException;
 import ru.yandex.practicum.commerce.store.mapper.ProductMapper;
 import ru.yandex.practicum.commerce.store.model.Product;
@@ -27,13 +31,11 @@ public class StoreServiceImpl implements StoreService {
     private final ProductMapper productMapper;
 
     @Override
-    public List<ProductDto> getProductsByCategory(ProductCategory category) {
-        log.info("Getting products by category: {}", category);
+    public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
+        log.info("Getting products by category: {} with pageable: {}", category, pageable);
 
-        return productRepository.findByCategoryAndStatus(category, ProductStatus.ACTIVE)
-                .stream()
-                .map(productMapper::toDto)
-                .collect(Collectors.toList());
+        return productRepository.findByCategoryAndStatus(category, ProductStatus.ACTIVE, pageable)
+                .map(productMapper::toDto);
     }
 
     @Override
@@ -59,16 +61,20 @@ public class StoreServiceImpl implements StoreService {
     public ProductDto createProduct(ProductDto productDto) {
         log.info("Creating new product: {}", productDto.getProductName());
 
-        if (productDto.getStatus() != ProductStatus.ACTIVE) {
-            log.warn("Forcing status to ACTIVE for new product");
-            productDto.setStatus(ProductStatus.ACTIVE);
-        }
-
         Product product = productMapper.toEntity(productDto);
 
+        // Если статус не указан, ставим ACTIVE
+        if (product.getStatus() == null) {
+            product.setStatus(ProductStatus.ACTIVE);
+        }
+
+        // Если количество не указано, ставим 0
         if (product.getQuantity() == null) {
             product.setQuantity(0);
         }
+
+        // Рассчитываем availability на основе quantity
+        product.setAvailability(calculateAvailability(product.getQuantity()));
 
         Product savedProduct = productRepository.save(product);
         log.info("Product created with id: {}", savedProduct.getId());
@@ -84,6 +90,11 @@ public class StoreServiceImpl implements StoreService {
         Product product = findActiveProductById(productId);
         productMapper.updateProductFromDto(productDto, product);
 
+        // Пересчитываем availability если изменилось quantity
+        if (productDto.getStatus() != null) {
+            product.setAvailability(calculateAvailability(product.getQuantity()));
+        }
+
         Product updatedProduct = productRepository.save(product);
         log.info("Product updated successfully");
 
@@ -92,29 +103,56 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     @Transactional
-    public void deactivateProduct(UUID productId) {
+    public boolean deactivateProduct(UUID productId) {
         log.info("Deactivating product with id: {}", productId);
 
-        Product product = findActiveProductById(productId);
-        product.setStatus(ProductStatus.DEACTIVATE);
-        productRepository.save(product);
-
-        log.info("Product deactivated successfully");
+        try {
+            Product product = findActiveProductById(productId);
+            product.setStatus(ProductStatus.DEACTIVATE);
+            productRepository.save(product);
+            log.info("Product deactivated successfully");
+            return true;
+        } catch (Exception e) {
+            log.error("Error deactivating product", e);
+            return false;
+        }
     }
 
     @Override
     @Transactional
     public void updateProductQuantity(UUID productId, Integer newQuantity) {
-        log.info("Updating quantity for product {} to {}", productId, newQuantity);
+        log.info("Updating quantity for product {}: {}", productId, newQuantity);
 
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductNotFoundException(
-                        "Product not found with id: " + productId));
-
+        Product product = findActiveProductById(productId);
         product.setQuantity(newQuantity);
+        product.setAvailability(calculateAvailability(newQuantity));
         productRepository.save(product);
 
-        log.info("Product quantity updated successfully");
+        log.info("Product quantity updated");
+    }
+
+    @Override
+    @Transactional
+    public boolean setProductQuantityState(SetProductQuantityStateRequest request) {
+        log.info("Setting quantity state for product: {} to {}",
+                request.getProductId(), request.getQuantityState());
+
+        try {
+            Product product = findActiveProductById(request.getProductId());
+
+            // Конвертируем AvailabilityStatus в количество для хранения в БД
+            int quantity = convertStateToQuantity(request.getQuantityState());
+            product.setQuantity(quantity);
+
+            // Обновляем availability на основе нового количества
+            product.setAvailability(request.getQuantityState());
+
+            productRepository.save(product);
+            return true;
+        } catch (Exception e) {
+            log.error("Error setting quantity state", e);
+            return false;
+        }
     }
 
     private Product findActiveProductById(UUID productId) {
@@ -122,5 +160,27 @@ public class StoreServiceImpl implements StoreService {
                 .filter(product -> product.getStatus() == ProductStatus.ACTIVE)
                 .orElseThrow(() -> new ProductNotFoundException(
                         "Product not found with id: " + productId));
+    }
+
+    private int convertStateToQuantity(AvailabilityStatus state) {
+        switch (state) {
+            case ENDED: return 0;
+            case FEW: return 5;      // меньше 10
+            case ENOUGH: return 50;   // от 10 до 100
+            case MANY: return 200;    // больше 100
+            default: return 0;
+        }
+    }
+
+    private AvailabilityStatus calculateAvailability(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            return AvailabilityStatus.ENDED;
+        } else if (quantity < 10) {
+            return AvailabilityStatus.FEW;
+        } else if (quantity <= 100) {
+            return AvailabilityStatus.ENOUGH;
+        } else {
+            return AvailabilityStatus.MANY;
+        }
     }
 }

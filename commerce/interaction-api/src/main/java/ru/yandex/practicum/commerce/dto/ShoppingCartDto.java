@@ -10,7 +10,7 @@ import java.util.UUID;
 @Builder
 public class ShoppingCartDto {
     private String shoppingCartId;
+    private Map<UUID, Long> products;
     private String userId;
-    private Map<UUID, Integer> products; // productId -> quantity
     private boolean active;
 }
