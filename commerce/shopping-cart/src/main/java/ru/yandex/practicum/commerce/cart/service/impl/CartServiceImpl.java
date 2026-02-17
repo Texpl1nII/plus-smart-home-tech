@@ -48,20 +48,16 @@ public class CartServiceImpl implements CartService {
 
         ShoppingCart cart = getActiveCart(username);
 
-        // Проверяем наличие на складе
         checkAvailability(username, request.getProductId(), request.getQuantity());
 
-        // Ищем существующий товар в корзине
         CartItem existingItem = itemRepository.findByCartAndProductId(cart, request.getProductId())
                 .orElse(null);
 
         if (existingItem != null) {
-            // Обновляем количество
             existingItem.setQuantity(existingItem.getQuantity() + request.getQuantity());
             itemRepository.save(existingItem);
             log.info("Updated quantity for product {}: {}", request.getProductId(), existingItem.getQuantity());
         } else {
-            // Создаем новый товар в корзине
             CartItem newItem = CartItem.builder()
                     .cart(cart)
                     .productId(request.getProductId())
