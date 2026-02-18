@@ -147,6 +147,10 @@ public class StoreServiceImpl implements StoreService {
             product.setAvailability(request.getQuantityState());
 
             productRepository.save(product);
+            productRepository.flush();
+
+            log.info("Product quantity state updated to: {}, quantity set to: {}",
+                    request.getQuantityState(), quantity);
             return true;
         } catch (Exception e) {
             log.error("Error setting quantity state", e);

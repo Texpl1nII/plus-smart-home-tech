@@ -8,13 +8,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
+import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
 import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,15 +38,11 @@ public class StoreController {
 
         log.info("GET /?category={}&page={}&size={}&sort={}", category, page, size, (Object[]) sort);
 
-        if (page == 0 && size == 20 && sort[0].equals("productName,asc")) {
-            List<ProductDto> products = storeService.getProductsByCategoryOld(category);
-            return ResponseEntity.ok(products);
-        }
-
         Sort sortBy = parseSort(sort);
         Pageable pageable = PageRequest.of(page, size, sortBy);
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
+        // Всегда возвращаем Page
         return ResponseEntity.ok(productPage);
     }
 
@@ -77,10 +76,26 @@ public class StoreController {
         return storeService.deactivateProduct(productId);
     }
 
-    @PostMapping("/quantityState")
-    public boolean setProductQuantityState(@Valid @RequestBody SetProductQuantityStateRequest request) {
-        log.info("POST /quantityState - product: {}, state: {}",
+    // Метод для работы с телом запроса (JSON)
+    @PostMapping(value = "/quantityState", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public boolean setProductQuantityStateWithBody(@Valid @RequestBody SetProductQuantityStateRequest request) {
+        log.info("POST /quantityState (body) - product: {}, state: {}",
                 request.getProductId(), request.getQuantityState());
+        return storeService.setProductQuantityState(request);
+    }
+
+    // Метод для работы с параметрами запроса (для совместимости с тестами)
+    @PostMapping(value = "/quantityState", params = {"productId", "quantityState"})
+    public boolean setProductQuantityStateWithParams(
+            @RequestParam UUID productId,
+            @RequestParam AvailabilityStatus quantityState) {
+        log.info("POST /quantityState (params) - product: {}, state: {}", productId, quantityState);
+
+        SetProductQuantityStateRequest request = SetProductQuantityStateRequest.builder()
+                .productId(productId)
+                .quantityState(quantityState)
+                .build();
+
         return storeService.setProductQuantityState(request);
     }
 
@@ -89,11 +104,12 @@ public class StoreController {
             return Sort.by("name").ascending();
         }
 
-        Sort.Order[] orders = new Sort.Order[sort.length];
-        for (int i = 0; i < sort.length; i++) {
-            String[] parts = sort[i].split(",");
+        List<Sort.Order> orders = new ArrayList<>();
+        for (String sortParam : sort) {
+            String[] parts = sortParam.split(",");
             String property = parts[0];
 
+            // Маппинг полей из спецификации в имена полей модели
             if ("productName".equals(property)) {
                 property = "name";
             } else if ("productCategory".equals(property)) {
@@ -104,9 +120,10 @@ public class StoreController {
                 property = "availability";
             }
 
-            Sort.Direction direction = parts.length > 1 && "desc".equalsIgnoreCase(parts[1])
-                    ? Sort.Direction.DESC : Sort.Direction.ASC;
-            orders[i] = new Sort.Order(direction, property).ignoreCase();
+            Sort.Direction direction = parts.length > 1 ?
+                    Sort.Direction.fromString(parts[1].toUpperCase()) : Sort.Direction.ASC;
+
+            orders.add(new Sort.Order(direction, property).ignoreCase());
         }
 
         return Sort.by(orders);
