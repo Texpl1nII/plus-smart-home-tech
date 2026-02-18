@@ -14,14 +14,12 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
-import ru.yandex.practicum.commerce.store.PageProductDto;
 import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -31,59 +29,36 @@ public class StoreController {
 
     private final StoreService storeService;
 
-    private PageProductDto convertToPageProductDto(Page<ProductDto> page) {
-        if (page == null || page.isEmpty()) {
-            return PageProductDto.builder()
-                    .content(new ArrayList<>())
-                    .totalElements(0)
-                    .totalPages(0)
-                    .size(0)
-                    .number(0)
-                    .first(true)
-                    .last(true)
-                    .empty(true)
-                    .sort(new ArrayList<>())  // ИЗМЕНЕНО: пустой список вместо объекта
-                    .pageable(PageProductDto.PageableObject.builder()
-                            .offset(0)
-                            .pageNumber(0)
-                            .pageSize(0)
-                            .paged(false)
-                            .unpaged(true)
-                            .sort(new ArrayList<>())
-                            .build())
-                    .build();
-        }
+    @GetMapping(params = {"category", "page", "size", "sort"})
+    public ResponseEntity<Page<ProductDto>> getProductsWithPagination(
+            @RequestParam ProductCategory category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "productName,asc") String[] sort) {
 
-        List<PageProductDto.SortObject> sortObjects = page.getSort().stream()
-                .map(order -> PageProductDto.SortObject.builder()
-                        .direction(order.getDirection().name())
-                        .property(order.getProperty())
-                        .ascending(order.isAscending())
-                        .ignoreCase(order.isIgnoreCase())
-                        .build())
-                .collect(Collectors.toList());
+        log.info("GET with pagination - category={}&page={}&size={}&sort={}",
+                category, page, size, (Object[]) sort);
 
-        PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
-                .offset(page.getPageable().getOffset())
-                .pageNumber(page.getPageable().getPageNumber())
-                .pageSize(page.getPageable().getPageSize())
-                .paged(page.getPageable().isPaged())
-                .unpaged(page.getPageable().isUnpaged())
-                .sort(sortObjects)
-                .build();
+        Sort sortBy = parseSort(sort);
+        Pageable pageable = PageRequest.of(page, size, sortBy);
+        Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        return PageProductDto.builder()
-                .content(page.getContent())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .size(page.getSize())
-                .number(page.getNumber())
-                .first(page.isFirst())
-                .last(page.isLast())
-                .empty(page.isEmpty())
-                .sort(sortObjects)  // ИЗМЕНЕНО: передаем список, а не первый элемент
-                .pageable(pageableObject)
-                .build();
+        return ResponseEntity.ok(productPage);
+    }
+
+    // Эндпоинт для GET только с category (возвращает список)
+    @GetMapping(params = "category")
+    public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
+            @RequestParam ProductCategory category) {
+        log.info("GET with category only: {}", category);
+        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
+        return ResponseEntity.ok(products);
+    }
+
+    // Эндпоинт для GET без параметров (если нужен)
+    @GetMapping
+    public ResponseEntity<String> getDefault() {
+        return ResponseEntity.badRequest().body("Category parameter is required");
     }
 
     @PutMapping
