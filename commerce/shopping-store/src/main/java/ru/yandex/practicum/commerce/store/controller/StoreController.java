@@ -14,12 +14,14 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
+import ru.yandex.practicum.commerce.store.PageProductDto;
 import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -29,8 +31,9 @@ public class StoreController {
 
     private final StoreService storeService;
 
+    // Эндпоинт для GET с пагинацией (использует кастомный DTO с content)
     @GetMapping(params = {"category", "page", "size", "sort"})
-    public ResponseEntity<Page<ProductDto>> getProductsWithPagination(
+    public ResponseEntity<PageProductDto> getProductsWithPagination(
             @RequestParam ProductCategory category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -39,11 +42,14 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        Sort sortBy = parseSort(sort);
+        // Исправляем парсинг сортировки - создаем Sort объект правильно
+        Sort sortBy = parseSortCorrectly(sort);
         Pageable pageable = PageRequest.of(page, size, sortBy);
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        return ResponseEntity.ok(productPage);
+        PageProductDto response = convertToPageProductDto(productPage, sortBy);
+
+        return ResponseEntity.ok(response);
     }
 
     // Эндпоинт для GET только с category (возвращает список)
@@ -55,7 +61,7 @@ public class StoreController {
         return ResponseEntity.ok(products);
     }
 
-    // Эндпоинт для GET без параметров (если нужен)
+    // Эндпоинт для GET без параметров
     @GetMapping
     public ResponseEntity<String> getDefault() {
         return ResponseEntity.badRequest().body("Category parameter is required");
@@ -112,37 +118,90 @@ public class StoreController {
         return storeService.setProductQuantityState(request);
     }
 
-    private Sort parseSort(String[] sort) {
+    private Sort parseSortCorrectly(String[] sort) {
+        log.info("===== SORT DEBUG =====");
+        log.info("Raw sort array: {}", (Object[]) sort);
+
         if (sort == null || sort.length == 0) {
+            log.info("No sort parameters, using default: name ASC");
             return Sort.by("name").ascending();
         }
 
         List<Sort.Order> orders = new ArrayList<>();
+
         for (String sortParam : sort) {
+            log.info("Processing sortParam: '{}'", sortParam);
+
             String[] parts = sortParam.split(",");
-            String property = parts[0];
+            log.info("Split into {} parts: {}", parts.length, (Object[]) parts);
 
-            if ("productName".equals(property)) {
-                property = "name";
-            } else if ("productCategory".equals(property)) {
-                property = "category";
-            } else if ("productState".equals(property)) {
-                property = "status";
-            } else if ("quantityState".equals(property)) {
-                property = "availability";
+            String field = parts[0];
+            log.info("Original field: '{}'", field);
+
+            // Маппинг поля
+            if ("productName".equals(field)) {
+                field = "name";
+                log.info("Mapped productName -> name");
+            } else if ("productCategory".equals(field)) {
+                field = "category";
+                log.info("Mapped productCategory -> category");
+            } else if ("productState".equals(field)) {
+                field = "status";
+                log.info("Mapped productState -> status");
+            } else if ("quantityState".equals(field)) {
+                field = "availability";
+                log.info("Mapped quantityState -> availability");
             }
 
-            Sort.Direction direction = Sort.Direction.ASC;
-            if (parts.length > 1) {
-                String directionStr = parts[1].toLowerCase();
-                if ("desc".equals(directionStr)) {
-                    direction = Sort.Direction.DESC;
-                }
+            // Определяем направление
+            if (parts.length > 1 && "desc".equalsIgnoreCase(parts[1])) {
+                log.info("Direction: DESC for field: {}", field);
+                orders.add(Sort.Order.desc(field));
+            } else {
+                log.info("Direction: ASC for field: {}", field);
+                orders.add(Sort.Order.asc(field));
             }
-
-            orders.add(new Sort.Order(direction, property).ignoreCase());
         }
 
-        return Sort.by(orders);
+        Sort result = Sort.by(orders);
+        log.info("Final Sort: {}", result);
+        log.info("===== END SORT DEBUG =====");
+        return result;
+    }
+
+    // Конвертер в кастомный DTO
+    private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort) {
+        List<PageProductDto.SortObject> sortObjects = new ArrayList<>();
+
+        sort.forEach(order -> {
+            sortObjects.add(PageProductDto.SortObject.builder()
+                    .direction(order.getDirection().name())
+                    .property(order.getProperty())
+                    .ascending(order.isAscending())
+                    .ignoreCase(order.isIgnoreCase())
+                    .build());
+        });
+
+        PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
+                .offset(page.getPageable().getOffset())
+                .pageNumber(page.getPageable().getPageNumber())
+                .pageSize(page.getPageable().getPageSize())
+                .paged(page.getPageable().isPaged())
+                .unpaged(page.getPageable().isUnpaged())
+                .sort(sortObjects)
+                .build();
+
+        return PageProductDto.builder()
+                .content(page.getContent())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .size(page.getSize())
+                .number(page.getNumber())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .empty(page.isEmpty())
+                .sort(sortObjects)
+                .pageable(pageableObject)
+                .build();
     }
 }
