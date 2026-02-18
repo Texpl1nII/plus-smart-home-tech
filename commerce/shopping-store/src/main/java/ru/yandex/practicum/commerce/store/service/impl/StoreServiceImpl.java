@@ -66,6 +66,7 @@ public class StoreServiceImpl implements StoreService {
     @Transactional
     public ProductDto createProduct(ProductDto productDto) {
         log.info("Creating new product: {}", productDto.getProductName());
+
         Product product = productMapper.toEntity(productDto);
 
         if (product.getStatus() == null) {
@@ -74,6 +75,8 @@ public class StoreServiceImpl implements StoreService {
 
         Product savedProduct = productRepository.save(product);
         log.info("Product created with id: {}", savedProduct.getId());
+
+        productRepository.flush();
 
         return productMapper.toDto(savedProduct);
     }
