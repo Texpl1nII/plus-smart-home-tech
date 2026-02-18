@@ -42,7 +42,6 @@ public class StoreController {
         Pageable pageable = PageRequest.of(page, size, sortBy);
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        // Всегда возвращаем Page
         return ResponseEntity.ok(productPage);
     }
 
@@ -120,8 +119,13 @@ public class StoreController {
                 property = "availability";
             }
 
-            Sort.Direction direction = parts.length > 1 ?
-                    Sort.Direction.fromString(parts[1].toUpperCase()) : Sort.Direction.ASC;
+            Sort.Direction direction = Sort.Direction.ASC;
+            if (parts.length > 1) {
+                String directionStr = parts[1].toLowerCase();
+                if ("desc".equals(directionStr)) {
+                    direction = Sort.Direction.DESC;
+                }
+            }
 
             orders.add(new Sort.Order(direction, property).ignoreCase());
         }
