@@ -31,23 +31,6 @@ public class StoreController {
 
     private final StoreService storeService;
 
-    @GetMapping
-    public ResponseEntity<PageProductDto> getProducts(
-            @RequestParam ProductCategory category,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "productName,asc") String[] sort) {
-
-        log.info("GET /?category={}&page={}&size={}&sort={}", category, page, size, (Object[]) sort);
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
-
-        PageProductDto response = convertToPageProductDto(productPage);
-
-        return ResponseEntity.ok(response);
-    }
-
     private PageProductDto convertToPageProductDto(Page<ProductDto> page) {
         if (page == null || page.isEmpty()) {
             return PageProductDto.builder()
@@ -59,7 +42,7 @@ public class StoreController {
                     .first(true)
                     .last(true)
                     .empty(true)
-                    .sort(PageProductDto.SortObject.builder().build())
+                    .sort(new ArrayList<>())  // ИЗМЕНЕНО: пустой список вместо объекта
                     .pageable(PageProductDto.PageableObject.builder()
                             .offset(0)
                             .pageNumber(0)
@@ -80,10 +63,6 @@ public class StoreController {
                         .build())
                 .collect(Collectors.toList());
 
-        PageProductDto.SortObject mainSort = sortObjects.isEmpty()
-                ? PageProductDto.SortObject.builder().build()
-                : sortObjects.get(0);
-
         PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
                 .offset(page.getPageable().getOffset())
                 .pageNumber(page.getPageable().getPageNumber())
@@ -102,7 +81,7 @@ public class StoreController {
                 .first(page.isFirst())
                 .last(page.isLast())
                 .empty(page.isEmpty())
-                .sort(mainSort)
+                .sort(sortObjects)  // ИЗМЕНЕНО: передаем список, а не первый элемент
                 .pageable(pageableObject)
                 .build();
     }
