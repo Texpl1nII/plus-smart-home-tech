@@ -66,7 +66,7 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public ProductDto getProductById(UUID productId) {
         log.info("Getting product by id: {}", productId);
-        Product product = findActiveProductById(productId);  // ← ОСТАВЛЯЕМ
+        Product product = findAnyProductById(productId);
         return productMapper.toDto(product);
     }
 
@@ -140,7 +140,7 @@ public class StoreServiceImpl implements StoreService {
                 request.getProductId(), request.getQuantityState());
 
         try {
-            Product product = findAnyProductById(request.getProductId());  // ← ИЗМЕНЕНО!
+            Product product = findAnyProductById(request.getProductId());
 
             int quantity = convertStateToQuantity(request.getQuantityState());
             product.setQuantity(quantity);

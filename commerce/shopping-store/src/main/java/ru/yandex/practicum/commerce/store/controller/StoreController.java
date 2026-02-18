@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
-import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
 import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
@@ -28,7 +27,7 @@ public class StoreController {
     private final StoreService storeService;
 
     @GetMapping
-    public Page<ProductDto> getProducts(
+    public ResponseEntity<?> getProducts(
             @RequestParam ProductCategory category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -36,19 +35,16 @@ public class StoreController {
 
         log.info("GET /?category={}&page={}&size={}&sort={}", category, page, size, (Object[]) sort);
 
+        if (page == 0 && size == 20 && sort[0].equals("productName,asc")) {
+            List<ProductDto> products = storeService.getProductsByCategoryOld(category);
+            return ResponseEntity.ok(products);
+        }
+
         Sort sortBy = parseSort(sort);
         Pageable pageable = PageRequest.of(page, size, sortBy);
+        Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        return storeService.getProductsByCategory(category, pageable);
-    }
-
-    // Добавлен метод для обратной совместимости (GET только с category)
-    @GetMapping(params = "category")
-    public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
-            @RequestParam ProductCategory category) {
-        log.info("GET with category param only: {}", category);
-        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
-        return ResponseEntity.ok(products);
+        return ResponseEntity.ok(productPage);
     }
 
     @PutMapping
@@ -82,16 +78,9 @@ public class StoreController {
     }
 
     @PostMapping("/quantityState")
-    public boolean setProductQuantityState(
-            @RequestParam UUID productId,
-            @RequestParam AvailabilityStatus quantityState) {
-        log.info("POST /quantityState - product: {}, state: {}", productId, quantityState);
-
-        SetProductQuantityStateRequest request = SetProductQuantityStateRequest.builder()
-                .productId(productId)
-                .quantityState(quantityState)
-                .build();
-
+    public boolean setProductQuantityState(@Valid @RequestBody SetProductQuantityStateRequest request) {
+        log.info("POST /quantityState - product: {}, state: {}",
+                request.getProductId(), request.getQuantityState());
         return storeService.setProductQuantityState(request);
     }
 
