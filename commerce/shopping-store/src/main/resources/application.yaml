@@ -2,7 +2,9 @@ spring:
   application:
     name: shopping-store
 
-    import: "configserver:"
+  config:
+    import: "configserver:http://localhost:8888"
+
   cloud:
     config:
       discovery:

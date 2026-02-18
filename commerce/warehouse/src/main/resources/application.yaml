@@ -2,7 +2,7 @@ spring:
   application:
     name: warehouse
   config:
-    import: "configserver:"
+    import: "configserver:http://localhost:8888"
   cloud:
     config:
       discovery:
