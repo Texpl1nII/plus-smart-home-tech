@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.cart.ChangeProductQuantityRequest;
 import ru.yandex.practicum.commerce.cart.NotAuthorizedUserException;
@@ -67,15 +68,36 @@ public class CartController {
         return cartService.removeProductsFromCart(username, productIds);
     }
 
-    @PostMapping("/change-quantity")
-    public ShoppingCartDto changeProductQuantity(
+    // Метод для работы с телом запроса (JSON)
+    @PostMapping(value = "/change-quantity", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ShoppingCartDto changeProductQuantityWithBody(
             @RequestParam String username,
             @Valid @RequestBody ChangeProductQuantityRequest request) {
-        log.info("POST /change-quantity?username={} - product: {}, quantity: {}",
+        log.info("POST /change-quantity?username={} (body) - product: {}, quantity: {}",
                 username, request.getProductId(), request.getNewQuantity());
         if (username == null || username.isBlank()) {
             throw new NotAuthorizedUserException("Username is required");
         }
+        return cartService.changeProductQuantity(username, request);
+    }
+
+    // Метод для работы с параметрами запроса (для совместимости с тестами)
+    @PostMapping(value = "/change-quantity", params = {"productId", "newQuantity"})
+    public ShoppingCartDto changeProductQuantityWithParams(
+            @RequestParam String username,
+            @RequestParam UUID productId,
+            @RequestParam Long newQuantity) {
+        log.info("POST /change-quantity?username={} (params) - product: {}, quantity: {}",
+                username, productId, newQuantity);
+        if (username == null || username.isBlank()) {
+            throw new NotAuthorizedUserException("Username is required");
+        }
+
+        ChangeProductQuantityRequest request = ChangeProductQuantityRequest.builder()
+                .productId(productId)
+                .newQuantity(newQuantity)
+                .build();
+
         return cartService.changeProductQuantity(username, request);
     }
 }
