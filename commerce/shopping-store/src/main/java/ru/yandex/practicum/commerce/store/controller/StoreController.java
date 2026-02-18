@@ -14,12 +14,14 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
+import ru.yandex.practicum.commerce.store.PageProductDto;
 import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -30,7 +32,7 @@ public class StoreController {
     private final StoreService storeService;
 
     @GetMapping
-    public ResponseEntity<List<ProductDto>> getProducts(
+    public ResponseEntity<PageProductDto> getProducts(
             @RequestParam ProductCategory category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -38,8 +40,71 @@ public class StoreController {
 
         log.info("GET /?category={}&page={}&size={}&sort={}", category, page, size, (Object[]) sort);
 
-        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
-        return ResponseEntity.ok(products);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
+
+        PageProductDto response = convertToPageProductDto(productPage);
+
+        return ResponseEntity.ok(response);
+    }
+
+    private PageProductDto convertToPageProductDto(Page<ProductDto> page) {
+        if (page == null || page.isEmpty()) {
+            return PageProductDto.builder()
+                    .content(new ArrayList<>())
+                    .totalElements(0)
+                    .totalPages(0)
+                    .size(0)
+                    .number(0)
+                    .first(true)
+                    .last(true)
+                    .empty(true)
+                    .sort(PageProductDto.SortObject.builder().build())
+                    .pageable(PageProductDto.PageableObject.builder()
+                            .offset(0)
+                            .pageNumber(0)
+                            .pageSize(0)
+                            .paged(false)
+                            .unpaged(true)
+                            .sort(new ArrayList<>())
+                            .build())
+                    .build();
+        }
+
+        List<PageProductDto.SortObject> sortObjects = page.getSort().stream()
+                .map(order -> PageProductDto.SortObject.builder()
+                        .direction(order.getDirection().name())
+                        .property(order.getProperty())
+                        .ascending(order.isAscending())
+                        .ignoreCase(order.isIgnoreCase())
+                        .build())
+                .collect(Collectors.toList());
+
+        PageProductDto.SortObject mainSort = sortObjects.isEmpty()
+                ? PageProductDto.SortObject.builder().build()
+                : sortObjects.get(0);
+
+        PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
+                .offset(page.getPageable().getOffset())
+                .pageNumber(page.getPageable().getPageNumber())
+                .pageSize(page.getPageable().getPageSize())
+                .paged(page.getPageable().isPaged())
+                .unpaged(page.getPageable().isUnpaged())
+                .sort(sortObjects)
+                .build();
+
+        return PageProductDto.builder()
+                .content(page.getContent())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .size(page.getSize())
+                .number(page.getNumber())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .empty(page.isEmpty())
+                .sort(mainSort)
+                .pageable(pageableObject)
+                .build();
     }
 
     @PutMapping
@@ -72,7 +137,6 @@ public class StoreController {
         return storeService.deactivateProduct(productId);
     }
 
-    // Метод для работы с телом запроса (JSON)
     @PostMapping(value = "/quantityState", consumes = MediaType.APPLICATION_JSON_VALUE)
     public boolean setProductQuantityStateWithBody(@Valid @RequestBody SetProductQuantityStateRequest request) {
         log.info("POST /quantityState (body) - product: {}, state: {}",
@@ -80,7 +144,6 @@ public class StoreController {
         return storeService.setProductQuantityState(request);
     }
 
-    // Метод для работы с параметрами запроса (для совместимости с тестами)
     @PostMapping(value = "/quantityState", params = {"productId", "quantityState"})
     public boolean setProductQuantityStateWithParams(
             @RequestParam UUID productId,
@@ -105,9 +168,6 @@ public class StoreController {
             String[] parts = sortParam.split(",");
             String property = parts[0];
 
-            log.debug("Original sort property: {}", property);
-
-            // Маппинг полей из спецификации в имена полей модели
             if ("productName".equals(property)) {
                 property = "name";
             } else if ("productCategory".equals(property)) {
@@ -118,12 +178,9 @@ public class StoreController {
                 property = "availability";
             }
 
-            log.debug("Mapped sort property: {}", property);
-
             Sort.Direction direction = Sort.Direction.ASC;
             if (parts.length > 1) {
                 String directionStr = parts[1].toLowerCase();
-                log.debug("Sort direction from param: {}", directionStr);
                 if ("desc".equals(directionStr)) {
                     direction = Sort.Direction.DESC;
                 }
@@ -132,8 +189,6 @@ public class StoreController {
             orders.add(new Sort.Order(direction, property).ignoreCase());
         }
 
-        Sort result = Sort.by(orders);
-        log.debug("Final sort: {}", result);
-        return result;
+        return Sort.by(orders);
     }
 }
