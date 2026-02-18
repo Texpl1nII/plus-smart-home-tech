@@ -19,10 +19,7 @@ import ru.yandex.practicum.commerce.dto.ProductAvailabilityRequest;
 import ru.yandex.practicum.commerce.dto.ProductAvailabilityResponse;
 import ru.yandex.practicum.commerce.dto.ShoppingCartDto;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -214,9 +211,17 @@ public class CartServiceImpl implements CartService {
     }
 
     private ShoppingCart getActiveCart(String username) {
-        return cartRepository.findByUserIdAndActiveTrue(username)
-                .orElseThrow(() -> new CartNotActiveException(
-                        "Active cart not found for user: " + username));
+        log.info("Looking for active cart for user: {}", username);
+
+        Optional<ShoppingCart> activeCart = cartRepository.findByUserIdAndActiveTrue(username);
+
+        if (activeCart.isPresent()) {
+            log.info("Found active cart with id: {}", activeCart.get().getId());
+            return activeCart.get();
+        } else {
+            log.info("No active cart found, creating new one");
+            return createNewCart(username);
+        }
     }
 
     private ShoppingCart getOrCreateCart(String username) {
@@ -233,7 +238,10 @@ public class CartServiceImpl implements CartService {
                 .active(true)
                 .build();
 
-        return cartRepository.save(newCart);
+        ShoppingCart savedCart = cartRepository.save(newCart);
+        log.info("Created new cart with id: {}", savedCart.getId());
+
+        return savedCart;
     }
 
     private void checkAvailability(String username, UUID productId, Integer quantity) {

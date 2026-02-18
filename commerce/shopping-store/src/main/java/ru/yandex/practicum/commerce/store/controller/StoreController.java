@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
+import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
 import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
@@ -81,9 +82,16 @@ public class StoreController {
     }
 
     @PostMapping("/quantityState")
-    public boolean setProductQuantityState(@Valid @RequestBody SetProductQuantityStateRequest request) {
-        log.info("POST /quantityState - product: {}, state: {}",
-                request.getProductId(), request.getQuantityState());
+    public boolean setProductQuantityState(
+            @RequestParam UUID productId,
+            @RequestParam AvailabilityStatus quantityState) {
+        log.info("POST /quantityState - product: {}, state: {}", productId, quantityState);
+
+        SetProductQuantityStateRequest request = SetProductQuantityStateRequest.builder()
+                .productId(productId)
+                .quantityState(quantityState)
+                .build();
+
         return storeService.setProductQuantityState(request);
     }
 

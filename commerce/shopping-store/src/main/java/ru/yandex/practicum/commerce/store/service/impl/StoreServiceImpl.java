@@ -58,7 +58,7 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public ProductDto getProductById(UUID productId) {
         log.info("Getting product by id: {}", productId);
-        Product product = findActiveProductById(productId);
+        Product product = findActiveProductById(productId);  // ← ОСТАВЛЯЕМ
         return productMapper.toDto(product);
     }
 
@@ -86,7 +86,7 @@ public class StoreServiceImpl implements StoreService {
     public ProductDto updateProduct(UUID productId, ProductDto productDto) {
         log.info("Updating product with id: {}", productId);
 
-        Product product = findActiveProductById(productId);
+        Product product = findProductById(productId);  // ← ИЗМЕНЕНО!
         productMapper.updateProductFromDto(productDto, product);
 
         Product updatedProduct = productRepository.save(product);
@@ -101,7 +101,7 @@ public class StoreServiceImpl implements StoreService {
         log.info("Deactivating product with id: {}", productId);
 
         try {
-            Product product = findActiveProductById(productId);
+            Product product = findProductById(productId);  // ← ИЗМЕНЕНО!
             product.setStatus(ProductStatus.DEACTIVATE);
             productRepository.save(product);
             log.info("Product deactivated successfully");
@@ -117,7 +117,7 @@ public class StoreServiceImpl implements StoreService {
     public void updateProductQuantity(UUID productId, Integer newQuantity) {
         log.info("Updating quantity for product {}: {}", productId, newQuantity);
 
-        Product product = findActiveProductById(productId);
+        Product product = findAnyProductById(productId);  // ← ИЗМЕНЕНО!
         product.setQuantity(newQuantity);
         product.setAvailability(calculateAvailability(newQuantity));
         productRepository.save(product);
@@ -132,7 +132,7 @@ public class StoreServiceImpl implements StoreService {
                 request.getProductId(), request.getQuantityState());
 
         try {
-            Product product = findActiveProductById(request.getProductId());
+            Product product = findAnyProductById(request.getProductId());  // ← ИЗМЕНЕНО!
 
             int quantity = convertStateToQuantity(request.getQuantityState());
             product.setQuantity(quantity);
@@ -146,9 +146,21 @@ public class StoreServiceImpl implements StoreService {
         }
     }
 
+    private Product findProductById(UUID productId) {
+        return productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(
+                        "Product not found with id: " + productId));
+    }
+
     private Product findActiveProductById(UUID productId) {
         return productRepository.findById(productId)
                 .filter(product -> product.getStatus() == ProductStatus.ACTIVE)
+                .orElseThrow(() -> new ProductNotFoundException(
+                        "Product not found or not active with id: " + productId));
+    }
+
+    private Product findAnyProductById(UUID productId) {
+        return productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(
                         "Product not found with id: " + productId));
     }

@@ -14,7 +14,7 @@ spring:
         max-interval: 6000
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/shopping_store_db
+    url: jdbc:postgresql://localhost:5432/warehouse_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver

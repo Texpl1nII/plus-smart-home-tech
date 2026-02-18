@@ -31,6 +31,22 @@ public class CartController {
         return cartService.getCart(username);
     }
 
+    @PostMapping("/change-quantity")
+    public ShoppingCartDto changeProductQuantity(
+            @RequestParam String username,
+            @RequestParam UUID productId,
+            @RequestParam Long newQuantity) {
+        log.info("POST /change-quantity?username={}&productId={}&newQuantity={}",
+                username, productId, newQuantity);
+
+        ChangeProductQuantityRequest request = ChangeProductQuantityRequest.builder()
+                .productId(productId)
+                .newQuantity(newQuantity)
+                .build();
+
+        return cartService.changeProductQuantity(username, request);
+    }
+
     @PutMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ShoppingCartDto addProductToShoppingCart(
