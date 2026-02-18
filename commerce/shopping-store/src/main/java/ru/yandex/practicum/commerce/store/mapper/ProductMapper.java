@@ -32,7 +32,7 @@ public class ProductMapper {
         }
 
         Product product = Product.builder()
-                .id(dto.getProductId())
+                .id(dto.getProductId() != null ? dto.getProductId() : null)
                 .name(dto.getProductName())
                 .description(dto.getDescription())
                 .category(dto.getProductCategory())
@@ -40,15 +40,12 @@ public class ProductMapper {
                 .status(dto.getProductState() != null ? dto.getProductState() : ProductStatus.ACTIVE)
                 .imageUrl(dto.getImageSrc())
                 .quantity(0)
+                .availability(dto.getQuantityState() != null ? dto.getQuantityState() : AvailabilityStatus.ENDED)
                 .build();
 
-        // Устанавливаем availability на основе quantityState из DTO
+        // Если есть quantityState, устанавливаем соответствующее количество
         if (dto.getQuantityState() != null) {
-            product.setAvailability(dto.getQuantityState());
-            // Конвертируем AvailabilityStatus в количество
             product.setQuantity(convertStateToQuantity(dto.getQuantityState()));
-        } else {
-            product.setAvailability(AvailabilityStatus.ENDED);
         }
 
         return product;
@@ -76,7 +73,6 @@ public class ProductMapper {
         }
         if (dto.getQuantityState() != null) {
             product.setAvailability(dto.getQuantityState());
-            // Обновляем количество в соответствии с новым статусом
             product.setQuantity(convertStateToQuantity(dto.getQuantityState()));
         }
         if (dto.getImageSrc() != null) {
