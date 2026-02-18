@@ -38,8 +38,8 @@ public class StoreController {
 
         log.info("GET /?category={}&page={}&size={}&sort={}", category, page, size, (Object[]) sort);
 
-        Sort sortBy = parseSort(sort);
-        Pageable pageable = PageRequest.of(page, size, sortBy);
+        // Временно игнорируем сортировку
+        Pageable pageable = PageRequest.of(page, size);
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
         return ResponseEntity.ok(productPage);
@@ -108,6 +108,8 @@ public class StoreController {
             String[] parts = sortParam.split(",");
             String property = parts[0];
 
+            log.debug("Original sort property: {}", property);
+
             // Маппинг полей из спецификации в имена полей модели
             if ("productName".equals(property)) {
                 property = "name";
@@ -119,9 +121,12 @@ public class StoreController {
                 property = "availability";
             }
 
+            log.debug("Mapped sort property: {}", property);
+
             Sort.Direction direction = Sort.Direction.ASC;
             if (parts.length > 1) {
                 String directionStr = parts[1].toLowerCase();
+                log.debug("Sort direction from param: {}", directionStr);
                 if ("desc".equals(directionStr)) {
                     direction = Sort.Direction.DESC;
                 }
@@ -130,6 +135,8 @@ public class StoreController {
             orders.add(new Sort.Order(direction, property).ignoreCase());
         }
 
-        return Sort.by(orders);
+        Sort result = Sort.by(orders);
+        log.debug("Final sort: {}", result);
+        return result;
     }
 }
