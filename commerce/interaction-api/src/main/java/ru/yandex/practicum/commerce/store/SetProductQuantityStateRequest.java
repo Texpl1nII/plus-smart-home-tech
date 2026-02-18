@@ -1,13 +1,13 @@
 package ru.yandex.practicum.commerce.store;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 
-import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 @Data
