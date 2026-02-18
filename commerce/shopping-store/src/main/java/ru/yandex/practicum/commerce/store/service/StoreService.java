@@ -11,10 +11,11 @@ import java.util.UUID;
 
 public interface StoreService {
 
-    // Метод для пагинации (ОСНОВНОЙ)
     Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable);
 
-    // Для обратной совместимости (если нужен список)
+    // Добавлен метод для получения списка без пагинации
+    List<ProductDto> getProductsByCategoryOld(ProductCategory category);
+
     default List<ProductDto> getProductsByCategory(ProductCategory category) {
         Page<ProductDto> page = getProductsByCategory(category, Pageable.unpaged());
         return page.getContent();

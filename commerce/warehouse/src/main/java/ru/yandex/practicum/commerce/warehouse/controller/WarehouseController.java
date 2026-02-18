@@ -3,6 +3,7 @@ package ru.yandex.practicum.commerce.warehouse.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.AddressDto;
 import ru.yandex.practicum.commerce.dto.ShoppingCartDto;
@@ -22,10 +23,8 @@ public class WarehouseController {
 
     private final WarehouseService warehouseService;
 
-    /**
-     * PUT /api/v1/warehouse - добавление нового товара на склад
-     */
     @PutMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public void newProductInWarehouse(@Valid @RequestBody NewProductInWarehouseRequest request) {
         log.info("PUT / - adding new product: {}", request.getProductId());
 
@@ -36,9 +35,6 @@ public class WarehouseController {
         warehouseService.addNewProduct(request);
     }
 
-    /**
-     * POST /api/v1/warehouse/check - проверка наличия товаров для корзины
-     */
     @PostMapping("/check")
     public BookedProductsDto checkProductQuantityEnoughForShoppingCart(
             @RequestBody ShoppingCartDto cart) {
@@ -56,10 +52,8 @@ public class WarehouseController {
         return result;
     }
 
-    /**
-     * POST /api/v1/warehouse/add - добавление количества товара
-     */
     @PostMapping("/add")
+    @ResponseStatus(HttpStatus.CREATED)
     public void addProductToWarehouse(@Valid @RequestBody AddProductToWarehouseRequest request) {
         log.info("POST /add - adding quantity to product: {}", request.getProductId());
 
@@ -70,9 +64,6 @@ public class WarehouseController {
         warehouseService.addProductQuantity(request);
     }
 
-    /**
-     * GET /api/v1/warehouse/address - получение адреса склада
-     */
     @GetMapping("/address")
     public AddressDto getWarehouseAddress() {
         log.info("GET /address");

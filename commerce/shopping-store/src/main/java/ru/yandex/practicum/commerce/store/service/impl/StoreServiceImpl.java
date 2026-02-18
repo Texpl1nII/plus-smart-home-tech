@@ -33,15 +33,22 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
         log.info("Getting products by category: {} with pageable: {}", category, pageable);
-
         return productRepository.findByCategoryAndStatus(category, ProductStatus.ACTIVE, pageable)
                 .map(productMapper::toDto);
     }
 
     @Override
+    public List<ProductDto> getProductsByCategoryOld(ProductCategory category) {
+        log.info("Getting products by category (old): {}", category);
+        return productRepository.findByCategoryAndStatus(category, ProductStatus.ACTIVE)
+                .stream()
+                .map(productMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<ProductDto> getAllActiveProducts() {
         log.info("Getting all active products");
-
         return productRepository.findByStatus(ProductStatus.ACTIVE)
                 .stream()
                 .map(productMapper::toDto)
@@ -51,7 +58,6 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public ProductDto getProductById(UUID productId) {
         log.info("Getting product by id: {}", productId);
-
         Product product = findActiveProductById(productId);
         return productMapper.toDto(product);
     }
@@ -60,21 +66,11 @@ public class StoreServiceImpl implements StoreService {
     @Transactional
     public ProductDto createProduct(ProductDto productDto) {
         log.info("Creating new product: {}", productDto.getProductName());
-
         Product product = productMapper.toEntity(productDto);
 
-        // Если статус не указан, ставим ACTIVE
         if (product.getStatus() == null) {
             product.setStatus(ProductStatus.ACTIVE);
         }
-
-        // Если количество не указано, ставим 0
-        if (product.getQuantity() == null) {
-            product.setQuantity(0);
-        }
-
-        // Рассчитываем availability на основе quantity
-        product.setAvailability(calculateAvailability(product.getQuantity()));
 
         Product savedProduct = productRepository.save(product);
         log.info("Product created with id: {}", savedProduct.getId());
@@ -89,10 +85,6 @@ public class StoreServiceImpl implements StoreService {
 
         Product product = findActiveProductById(productId);
         productMapper.updateProductFromDto(productDto, product);
-
-        if (productDto.getQuantityState() != null) {  // ← ИСПРАВЛЕНО: было getStatus(), стало getQuantityState()
-            product.setAvailability(calculateAvailability(product.getQuantity()));
-        }
 
         Product updatedProduct = productRepository.save(product);
         log.info("Product updated successfully");
@@ -139,11 +131,8 @@ public class StoreServiceImpl implements StoreService {
         try {
             Product product = findActiveProductById(request.getProductId());
 
-            // Конвертируем AvailabilityStatus в количество для хранения в БД
             int quantity = convertStateToQuantity(request.getQuantityState());
             product.setQuantity(quantity);
-
-            // Обновляем availability на основе нового количества
             product.setAvailability(request.getQuantityState());
 
             productRepository.save(product);
@@ -164,9 +153,9 @@ public class StoreServiceImpl implements StoreService {
     private int convertStateToQuantity(AvailabilityStatus state) {
         switch (state) {
             case ENDED: return 0;
-            case FEW: return 5;      // меньше 10
-            case ENOUGH: return 50;   // от 10 до 100
-            case MANY: return 200;    // больше 100
+            case FEW: return 5;
+            case ENOUGH: return 50;
+            case MANY: return 200;
             default: return 0;
         }
     }

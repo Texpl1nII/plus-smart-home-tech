@@ -8,12 +8,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
 import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -33,13 +35,20 @@ public class StoreController {
 
         log.info("GET /?category={}&page={}&size={}&sort={}", category, page, size, (Object[]) sort);
 
-        // Преобразуем параметры сортировки
         Sort sortBy = parseSort(sort);
         Pageable pageable = PageRequest.of(page, size, sortBy);
 
         return storeService.getProductsByCategory(category, pageable);
     }
 
+    // Добавлен метод для обратной совместимости (GET только с category)
+    @GetMapping(params = "category")
+    public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
+            @RequestParam ProductCategory category) {
+        log.info("GET with category param only: {}", category);
+        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
+        return ResponseEntity.ok(products);
+    }
 
     @PutMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -80,7 +89,7 @@ public class StoreController {
 
     private Sort parseSort(String[] sort) {
         if (sort == null || sort.length == 0) {
-            return Sort.by("name").ascending();  // было "productName", стало "name"
+            return Sort.by("name").ascending();
         }
 
         Sort.Order[] orders = new Sort.Order[sort.length];
@@ -88,7 +97,6 @@ public class StoreController {
             String[] parts = sort[i].split(",");
             String property = parts[0];
 
-            // Маппинг полей из спецификации в имена полей модели
             if ("productName".equals(property)) {
                 property = "name";
             } else if ("productCategory".equals(property)) {

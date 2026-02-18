@@ -33,10 +33,8 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Transactional
     public void addProductToWarehouse(WarehouseProductDto productDto) {
         log.info("Adding product to warehouse: {}", productDto.getProductId());
-
         WarehouseProduct product = mapper.toEntity(productDto);
         repository.save(product);
-
         log.info("Product added to warehouse successfully");
     }
 
@@ -65,9 +63,13 @@ public class WarehouseServiceImpl implements WarehouseService {
     public void addNewProduct(NewProductInWarehouseRequest request) {
         log.info("Adding new product to warehouse: {}", request.getProductId());
 
+        if (repository.existsById(request.getProductId())) {
+            throw new ru.yandex.practicum.commerce.warehouse.exceptions.SpecifiedProductAlreadyInWarehouseException(request.getProductId());
+        }
+
         WarehouseProduct product = WarehouseProduct.builder()
                 .productId(request.getProductId())
-                .quantity(0)  // начальное количество 0
+                .quantity(0)
                 .width(request.getDimension().getWidth())
                 .height(request.getDimension().getHeight())
                 .depth(request.getDimension().getDepth())
@@ -83,7 +85,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     public Map<UUID, Integer> getUnavailableProducts(ShoppingCartDto cart) {
         Map<UUID, Integer> unavailable = new HashMap<>();
 
-        if (cart.getProducts() == null) {
+        if (cart.getProducts() == null || cart.getProducts().isEmpty()) {
             return unavailable;
         }
 
@@ -148,7 +150,6 @@ public class WarehouseServiceImpl implements WarehouseService {
 
         List<UUID> unavailableProducts = new ArrayList<>();
 
-        // Проверяем каждый товар из запроса
         for (Map.Entry<UUID, Integer> entry : request.getProducts().entrySet()) {
             UUID productId = entry.getKey();
             Integer requestedQuantity = entry.getValue();
@@ -197,7 +198,6 @@ public class WarehouseServiceImpl implements WarehouseService {
         double totalVolume = 0.0;
         boolean hasFragile = false;
 
-        // Проверяем каждый товар
         for (Map.Entry<UUID, Long> entry : cart.getProducts().entrySet()) {
             UUID productId = entry.getKey();
             Long requestedQuantity = entry.getValue();
@@ -205,10 +205,9 @@ public class WarehouseServiceImpl implements WarehouseService {
             WarehouseProduct wp = productMap.get(productId);
             if (wp == null || wp.getQuantity() < requestedQuantity.intValue()) {
                 log.debug("Product {} not available in requested quantity", productId);
-                return null;  // сигнал, что товаров недостаточно
+                return null;
             }
 
-            // Рассчитываем вес и объем
             double volume = wp.getWidth() * wp.getHeight() * wp.getDepth();
             totalVolume += volume * requestedQuantity;
             totalWeight += wp.getWeight() * requestedQuantity;
