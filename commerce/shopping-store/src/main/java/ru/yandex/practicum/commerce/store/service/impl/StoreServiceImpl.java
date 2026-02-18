@@ -90,8 +90,7 @@ public class StoreServiceImpl implements StoreService {
         Product product = findActiveProductById(productId);
         productMapper.updateProductFromDto(productDto, product);
 
-        // Пересчитываем availability если изменилось quantity
-        if (productDto.getStatus() != null) {
+        if (productDto.getQuantityState() != null) {  // ← ИСПРАВЛЕНО: было getStatus(), стало getQuantityState()
             product.setAvailability(calculateAvailability(product.getQuantity()));
         }
 
