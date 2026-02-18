@@ -31,7 +31,6 @@ public class StoreController {
 
     private final StoreService storeService;
 
-    // Эндпоинт для GET с пагинацией (использует кастомный DTO с content)
     @GetMapping(params = {"category", "page", "size", "sort"})
     public ResponseEntity<PageProductDto> getProductsWithPagination(
             @RequestParam ProductCategory category,
@@ -42,17 +41,14 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        // Исправляем парсинг сортировки - создаем Sort объект правильно
-        Sort sortBy = parseSortCorrectly(sort);
-        Pageable pageable = PageRequest.of(page, size, sortBy);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        PageProductDto response = convertToPageProductDto(productPage, sortBy);
+        PageProductDto response = convertToPageProductDto(productPage, Sort.by("name").ascending());
 
         return ResponseEntity.ok(response);
     }
 
-    // Эндпоинт для GET только с category (возвращает список)
     @GetMapping(params = "category")
     public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
             @RequestParam ProductCategory category) {
