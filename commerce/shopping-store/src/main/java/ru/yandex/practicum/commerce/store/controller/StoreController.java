@@ -30,7 +30,7 @@ public class StoreController {
     private final StoreService storeService;
 
     @GetMapping
-    public ResponseEntity<Page<ProductDto>> getProducts(
+    public ResponseEntity<List<ProductDto>> getProducts(
             @RequestParam ProductCategory category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -38,10 +38,8 @@ public class StoreController {
 
         log.info("GET /?category={}&page={}&size={}&sort={}", category, page, size, (Object[]) sort);
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
-
-        return ResponseEntity.ok(productPage != null ? productPage : Page.empty());
+        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
+        return ResponseEntity.ok(products);
     }
 
     @PutMapping
