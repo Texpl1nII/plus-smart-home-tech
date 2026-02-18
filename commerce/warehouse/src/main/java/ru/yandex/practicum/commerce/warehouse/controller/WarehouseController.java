@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.AddressDto;
+import ru.yandex.practicum.commerce.dto.ProductAvailabilityRequest;
+import ru.yandex.practicum.commerce.dto.ProductAvailabilityResponse;
 import ru.yandex.practicum.commerce.dto.ShoppingCartDto;
 import ru.yandex.practicum.commerce.warehouse.AddProductToWarehouseRequest;
 import ru.yandex.practicum.commerce.warehouse.BookedProductsDto;
@@ -35,10 +37,16 @@ public class WarehouseController {
         warehouseService.addNewProduct(request);
     }
 
+    @PostMapping("/check-availability")
+    public ProductAvailabilityResponse checkAvailability(
+            @Valid @RequestBody ProductAvailabilityRequest request) {
+        log.info("POST /check-availability for user: {}", request.getUsername());
+        return warehouseService.checkAvailability(request);
+    }
+
     @PostMapping("/check")
     public BookedProductsDto checkProductQuantityEnoughForShoppingCart(
             @RequestBody ShoppingCartDto cart) {
-
         log.info("POST /check - checking cart: {}", cart.getShoppingCartId());
 
         BookedProductsDto result = warehouseService.checkAvailabilityForCart(cart);

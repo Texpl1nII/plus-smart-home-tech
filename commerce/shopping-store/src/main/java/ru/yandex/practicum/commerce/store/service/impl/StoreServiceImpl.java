@@ -33,8 +33,16 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
         log.info("Getting products by category: {} with pageable: {}", category, pageable);
-        return productRepository.findByCategoryAndStatus(category, ProductStatus.ACTIVE, pageable)
-                .map(productMapper::toDto);
+
+        Page<Product> productPage = productRepository.findByCategoryAndStatus(
+                category, ProductStatus.ACTIVE, pageable);
+
+        log.info("Found {} products, total elements: {}, total pages: {}",
+                productPage.getNumberOfElements(),
+                productPage.getTotalElements(),
+                productPage.getTotalPages());
+
+        return productPage.map(productMapper::toDto);
     }
 
     @Override
@@ -101,7 +109,7 @@ public class StoreServiceImpl implements StoreService {
         log.info("Deactivating product with id: {}", productId);
 
         try {
-            Product product = findProductById(productId);  // ← ИЗМЕНЕНО!
+            Product product = findAnyProductById(productId);
             product.setStatus(ProductStatus.DEACTIVATE);
             productRepository.save(product);
             log.info("Product deactivated successfully");
