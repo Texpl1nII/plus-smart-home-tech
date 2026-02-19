@@ -119,7 +119,13 @@ public class StoreController {
         return ResponseEntity.ok(response);
     }
 
-    // Удален конфликтующий метод getProductsByCategoryOnly
+    @GetMapping(params = "category")
+    public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
+            @RequestParam ProductCategory category) {
+        log.info("GET with category only: {}", category);
+        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
+        return ResponseEntity.ok(products);
+    }
 
     @GetMapping
     public ResponseEntity<String> getDefault() {
@@ -221,7 +227,6 @@ public class StoreController {
         return result;
     }
 
-    // Этот метод больше не используется, но оставим для обратной совместимости
     private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort, String originalField, String originalDirection) {
         log.info("========== CONVERT TO PAGE PRODUCT DTO ==========");
         log.info("Original field: {}, original direction: {}", originalField, originalDirection);
