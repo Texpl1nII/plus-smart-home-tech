@@ -33,46 +33,13 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
-        log.info("========== STORE SERVICE ==========");
-        log.info("Category: {}", category);
-        log.info("Pageable: {}", pageable);
-        log.info("Pageable sort: {}", pageable.getSort());
+        log.info("Getting products by category: {} with pageable: {}", category, pageable);
 
-        // Подробно логируем каждый order
-        for (Sort.Order order : pageable.getSort()) {
-            log.info("Order - property: {}, direction: {}, isDescending: {}",
-                    order.getProperty(), order.getDirection(), order.isDescending());
-        }
+        Page<Product> productPage = productRepository.findByCategoryAndStatus(
+                category, ProductStatus.ACTIVE, pageable);
 
-        Page<Product> productPage;
-
-        // Проверяем, нужна ли DESC сортировка по name
-        boolean isDescByName = false;
-        if (pageable.getSort().isSorted()) {
-            Sort.Order order = pageable.getSort().iterator().next();
-            if ("name".equals(order.getProperty()) && order.isDescending()) {
-                isDescByName = true;
-                log.info(">>> DETECTED DESC SORTING FOR NAME");
-            }
-        }
-
-        if (isDescByName) {
-            log.info(">>> USING EXPLICIT DESC QUERY");
-            productPage = productRepository.findByCategoryAndStatusOrderByNameDesc(
-                    category, ProductStatus.ACTIVE, pageable);
-        } else {
-            log.info(">>> USING STANDARD QUERY");
-            productPage = productRepository.findByCategoryAndStatus(
-                    category, ProductStatus.ACTIVE, pageable);
-        }
-
-        log.info("Repository returned page with sort: {}", productPage.getSort());
         log.info("Found {} products", productPage.getNumberOfElements());
-
-        Page<ProductDto> result = productPage.map(productMapper::toDto);
-        log.info("Returning page with sort: {}", result.getSort());
-
-        return result;
+        return productPage.map(productMapper::toDto);
     }
 
     @Override

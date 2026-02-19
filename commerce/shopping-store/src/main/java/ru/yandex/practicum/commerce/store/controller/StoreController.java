@@ -133,26 +133,19 @@ public class StoreController {
 
         log.info("Parsed - field: '{}', direction: '{}'", field, direction);
 
-        String jpaField;
-        if ("productName".equals(field)) {
-            jpaField = "name";
-            log.info("Mapping productName -> name for JPA");
-        } else {
-            jpaField = field;
-        }
+        String jpaField = "name";
 
         Sort.Order order;
         if ("desc".equalsIgnoreCase(direction)) {
-            log.info("Creating DESC order for JPA field: {}", jpaField);
+            log.info("Creating DESC order for field: {}", jpaField);
             order = Sort.Order.desc(jpaField);
         } else {
-            log.info("Creating ASC order for JPA field: {}", jpaField);
+            log.info("Creating ASC order for field: {}", jpaField);
             order = Sort.Order.asc(jpaField);
         }
 
         Sort result = Sort.by(order);
-        log.info("Result sort for JPA: {}", result);
-        log.info("Result orders: {}", result.stream().collect(Collectors.toList()));
+        log.info("Result sort: {}", result);
         log.info("----- EXIT parseSortCorrectly -----");
         return result;
     }
