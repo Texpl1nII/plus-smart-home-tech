@@ -17,7 +17,7 @@ public class PageProductDto {
     private boolean first;
     private boolean last;
     private boolean empty;
-    private List<SortObject> sort;
+    private SortObject sort;
     private PageableObject pageable;
 
     @Data
