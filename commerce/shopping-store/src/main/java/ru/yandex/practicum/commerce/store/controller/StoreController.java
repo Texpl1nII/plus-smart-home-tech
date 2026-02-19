@@ -75,6 +75,14 @@ public class StoreController {
     }
 
     @GetMapping(params = "category")
+    public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
+            @RequestParam ProductCategory category) {
+        log.info("GET with category only: {}", category);
+        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping(params = "category")
     public ResponseEntity<Page<ProductDto>> getProductsByCategoryOnly(
             @RequestParam ProductCategory category,
             @RequestParam(defaultValue = "0") int page,
@@ -84,13 +92,11 @@ public class StoreController {
         log.info("GET with category only - category={}, page={}, size={}, sort={}",
                 category, page, size, (Object[]) sort);
 
-        // Создаем сортировку
         String sortParam = sort[0];
         String[] parts = sortParam.split(",");
         String field = parts[0];
         String direction = parts.length > 1 ? parts[1] : "asc";
 
-        // Маппим поле для JPA
         String jpaField = "name";
         Sort sortObject;
         if ("desc".equalsIgnoreCase(direction)) {
@@ -105,7 +111,6 @@ public class StoreController {
         return ResponseEntity.ok(products);
     }
 
-    // Эндпоинт для GET без параметров
     @GetMapping
     public ResponseEntity<String> getDefault() {
         return ResponseEntity.badRequest().body("Category parameter is required");
