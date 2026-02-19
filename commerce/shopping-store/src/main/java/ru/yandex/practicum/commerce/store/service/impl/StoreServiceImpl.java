@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.commerce.dto.ProductDto;
@@ -32,21 +33,31 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
-        log.info("=== StoreServiceImpl.getProductsByCategory ===");
-        log.info("Category: {}", category);
-        log.info("Pageable: {}", pageable);
-        log.info("Pageable sort: {}", pageable.getSort());
-        log.info("Pageable sort orders: {}", pageable.getSort().stream().collect(Collectors.toList()));
+        log.info("Getting products by category: {} with pageable: {}", category, pageable);
 
-        Page<Product> productPage = productRepository.findByCategoryAndStatus(
-                category, ProductStatus.ACTIVE, pageable);
+        // Проверяем, какая сортировка нужна
+        Page<Product> productPage;
 
-        log.info("Repository returned page with sort: {}", productPage.getSort());
+        if (pageable.getSort().isSorted()) {
+            // Если сортировка DESC по name
+            Sort.Order order = pageable.getSort().iterator().next();
+            if (order.getProperty().equals("name") && order.isDescending()) {
+                log.info("Using explicit DESC sorting");
+                productPage = productRepository.findByCategoryAndStatusOrderByNameDesc(
+                        category, ProductStatus.ACTIVE, pageable);
+            } else {
+                // Для всех остальных случаев используем стандартный метод
+                productPage = productRepository.findByCategoryAndStatus(
+                        category, ProductStatus.ACTIVE, pageable);
+            }
+        } else {
+            // Если сортировки нет
+            productPage = productRepository.findByCategoryAndStatus(
+                    category, ProductStatus.ACTIVE, pageable);
+        }
 
-        Page<ProductDto> result = productPage.map(productMapper::toDto);
-        log.info("Returning page with sort: {}", result.getSort());
-
-        return result;
+        log.info("Found {} products", productPage.getNumberOfElements());
+        return productPage.map(productMapper::toDto);
     }
 
     @Override

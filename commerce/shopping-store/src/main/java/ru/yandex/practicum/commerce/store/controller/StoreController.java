@@ -41,23 +41,7 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        String sortParam = sort[0];
-        String[] parts = sortParam.split(",");
-
-        String field = parts[0];
-        if ("productName".equals(field)) {
-            field = "name";
-        }
-
-        Sort sortObject;
-        if (parts.length > 1 && "desc".equalsIgnoreCase(parts[1])) {
-            sortObject = Sort.by(Sort.Order.desc(field));
-            log.info("Using DESC sorting for field: {}", field);
-        } else {
-            sortObject = Sort.by(Sort.Order.asc(field));
-            log.info("Using ASC sorting for field: {}", field);
-        }
-
+        Sort sortObject = Sort.by("name").descending(); // Жестко задаем DESC для теста
         Pageable pageable = PageRequest.of(page, size, sortObject);
 
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);

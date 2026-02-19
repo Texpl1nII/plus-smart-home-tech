@@ -13,12 +13,11 @@ import java.util.UUID;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, UUID> {
-
-    // Для пагинации (НОВЫЙ)
     Page<Product> findByCategoryAndStatus(ProductCategory category, ProductStatus status, Pageable pageable);
 
-    // Для списка (старый, если нужен)
     List<Product> findByCategoryAndStatus(ProductCategory category, ProductStatus status);
 
     List<Product> findByStatus(ProductStatus status);
+
+    Page<Product> findByCategoryAndStatusOrderByNameDesc(ProductCategory category, ProductStatus status, Pageable pageable);
 }
