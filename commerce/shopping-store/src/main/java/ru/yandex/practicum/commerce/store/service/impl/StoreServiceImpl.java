@@ -33,7 +33,16 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
-        log.info("Getting products by category: {} with pageable: {}", category, pageable);
+        log.info("========== STORE SERVICE ==========");
+        log.info("Category: {}", category);
+        log.info("Pageable: {}", pageable);
+        log.info("Pageable sort: {}", pageable.getSort());
+
+        // Подробно логируем каждый order
+        for (Sort.Order order : pageable.getSort()) {
+            log.info("Order - property: {}, direction: {}, isDescending: {}",
+                    order.getProperty(), order.getDirection(), order.isDescending());
+        }
 
         Page<Product> productPage;
 
@@ -43,21 +52,27 @@ public class StoreServiceImpl implements StoreService {
             Sort.Order order = pageable.getSort().iterator().next();
             if ("name".equals(order.getProperty()) && order.isDescending()) {
                 isDescByName = true;
+                log.info(">>> DETECTED DESC SORTING FOR NAME");
             }
         }
 
         if (isDescByName) {
-            log.info("Using explicit DESC query");
+            log.info(">>> USING EXPLICIT DESC QUERY");
             productPage = productRepository.findByCategoryAndStatusOrderByNameDesc(
                     category, ProductStatus.ACTIVE, pageable);
         } else {
-            log.info("Using standard query");
+            log.info(">>> USING STANDARD QUERY");
             productPage = productRepository.findByCategoryAndStatus(
                     category, ProductStatus.ACTIVE, pageable);
         }
 
+        log.info("Repository returned page with sort: {}", productPage.getSort());
         log.info("Found {} products", productPage.getNumberOfElements());
-        return productPage.map(productMapper::toDto);
+
+        Page<ProductDto> result = productPage.map(productMapper::toDto);
+        log.info("Returning page with sort: {}", result.getSort());
+
+        return result;
     }
 
     @Override
