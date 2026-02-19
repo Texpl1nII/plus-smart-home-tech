@@ -175,6 +175,9 @@ public class StoreController {
                     .property(order.getProperty())
                     .ascending(order.isAscending())
                     .ignoreCase(order.isIgnoreCase())
+                    .sorted(true)
+                    .unsorted(false)
+                    .empty(false)
                     .build();
             sortObjects.add(sortObj);
 
@@ -189,6 +192,9 @@ public class StoreController {
                     .property("name")
                     .ascending(true)
                     .ignoreCase(false)
+                    .sorted(false)
+                    .unsorted(true)
+                    .empty(true)
                     .build();
         }
 
@@ -198,13 +204,15 @@ public class StoreController {
                 .pageSize(page.getPageable().getPageSize())
                 .paged(page.getPageable().isPaged())
                 .unpaged(page.getPageable().isUnpaged())
-                .sort(sortObjects)  // здесь оставляем массив
+                .sort(sortObjects)
+                .sorted(!sortObjects.isEmpty())
+                .unsorted(sortObjects.isEmpty())
                 .build();
 
         return PageProductDto.builder()
                 .content(page.getContent())
-                .totalElements(page.getTotalElements())
                 .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
                 .size(page.getSize())
                 .number(page.getNumber())
                 .first(page.isFirst())
@@ -212,6 +220,12 @@ public class StoreController {
                 .empty(page.isEmpty())
                 .sort(mainSortObject)
                 .pageable(pageableObject)
+                .numberOfElements(page.getNumberOfElements())
+                .hasContent(page.hasContent())
+                .hasNext(page.hasNext())
+                .hasPrevious(page.hasPrevious())
+                .isFirst(page.isFirst())
+                .isLast(page.isLast())
                 .build();
     }
 }
