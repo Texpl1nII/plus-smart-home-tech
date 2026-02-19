@@ -123,67 +123,52 @@ public class StoreController {
             return Sort.by("name").ascending();
         }
 
-        List<Sort.Order> orders = new ArrayList<>();
+        // Берем только первый элемент сортировки
+        String sortParam = sort[0];
+        log.info("Using first sort param: '{}'", sortParam);
 
-        for (String sortParam : sort) {
-            log.info("Processing sortParam: '{}'", sortParam);
+        String[] parts = sortParam.split(",");
+        log.info("Split into {} parts: {}", parts.length, (Object[]) parts);
 
-            String[] parts = sortParam.split(",");
-            log.info("Split into {} parts: {}", parts.length, (Object[]) parts);
+        // Если передан только direction (например "DESC")
+        if (parts.length == 1 && ("ASC".equalsIgnoreCase(parts[0]) || "DESC".equalsIgnoreCase(parts[0]))) {
+            String direction = parts[0];
+            log.info("Only direction provided: {}, using default field 'name'", direction);
 
-            // Если передан только direction (например "DESC")
-            if (parts.length == 1 && ("ASC".equalsIgnoreCase(parts[0]) || "DESC".equalsIgnoreCase(parts[0]))) {
-                String direction = parts[0];
-                log.info("Only direction provided: {}, using default field 'name'", direction);
-
-                // Используем поле по умолчанию - name
-                if ("desc".equalsIgnoreCase(direction)) {
-                    orders.add(Sort.Order.desc("name"));
-                } else {
-                    orders.add(Sort.Order.asc("name"));
-                }
-                continue;
-            }
-
-            // Обычный случай: поле,направление
-            String field = parts[0];
-            log.info("Original field: '{}'", field);
-
-            // Маппинг поля
-            if ("productName".equals(field)) {
-                field = "name";
-                log.info("Mapped productName -> name");
-            } else if ("productCategory".equals(field)) {
-                field = "category";
-                log.info("Mapped productCategory -> category");
-            } else if ("productState".equals(field)) {
-                field = "status";
-                log.info("Mapped productState -> status");
-            } else if ("quantityState".equals(field)) {
-                field = "availability";
-                log.info("Mapped quantityState -> availability");
-            }
-
-            // Определяем направление
-            if (parts.length > 1 && "desc".equalsIgnoreCase(parts[1])) {
-                log.info("Direction: DESC for field: {}", field);
-                orders.add(Sort.Order.desc(field));
+            // Используем поле по умолчанию - name
+            if ("desc".equalsIgnoreCase(direction)) {
+                return Sort.by("name").descending();
             } else {
-                log.info("Direction: ASC for field: {}", field);
-                orders.add(Sort.Order.asc(field));
+                return Sort.by("name").ascending();
             }
         }
 
-        // Если orders пустой (например, пришли пустые параметры)
-        if (orders.isEmpty()) {
-            log.info("No valid sort orders, using default: name ASC");
-            orders.add(Sort.Order.asc("name"));
+        // Обычный случай: поле,направление
+        String field = parts[0];
+        log.info("Original field: '{}'", field);
+
+        // Маппинг поля
+        if ("productName".equals(field)) {
+            field = "name";
+            log.info("Mapped productName -> name");
+        } else if ("productCategory".equals(field)) {
+            field = "category";
+            log.info("Mapped productCategory -> category");
+        } else if ("productState".equals(field)) {
+            field = "status";
+            log.info("Mapped productState -> status");
+        } else if ("quantityState".equals(field)) {
+            field = "availability";
+            log.info("Mapped quantityState -> availability");
         }
 
-        Sort result = Sort.by(orders);
-        log.info("Final Sort: {}", result);
-        log.info("===== END SORT DEBUG =====");
-        return result;
+        if (parts.length > 1 && "desc".equalsIgnoreCase(parts[1])) {
+            log.info("Direction: DESC for field: {}", field);
+            return Sort.by(Sort.Order.desc(field));
+        } else {
+            log.info("Direction: ASC for field: {}", field);
+            return Sort.by(Sort.Order.asc(field));
+        }
     }
 
     private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort) {
