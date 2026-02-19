@@ -32,7 +32,7 @@ public class StoreController {
     private final StoreService storeService;
 
     @GetMapping(params = {"category", "page", "size", "sort"})
-    public ResponseEntity<PageProductDto> getProductsWithPagination(
+    public ResponseEntity<Page<ProductDto>> getProductsWithPagination(
             @RequestParam ProductCategory category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -46,9 +46,7 @@ public class StoreController {
 
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        PageProductDto response = convertToPageProductDto(productPage, sortObject);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(productPage);
     }
 
     @GetMapping(params = "category")
