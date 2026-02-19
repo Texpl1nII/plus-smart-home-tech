@@ -35,23 +35,23 @@ public class StoreServiceImpl implements StoreService {
     public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
         log.info("Getting products by category: {} with pageable: {}", category, pageable);
 
-        // Проверяем, какая сортировка нужна
         Page<Product> productPage;
 
+        // Проверяем, нужна ли DESC сортировка по name
+        boolean isDescByName = false;
         if (pageable.getSort().isSorted()) {
-            // Если сортировка DESC по name
             Sort.Order order = pageable.getSort().iterator().next();
-            if (order.getProperty().equals("name") && order.isDescending()) {
-                log.info("Using explicit DESC sorting");
-                productPage = productRepository.findByCategoryAndStatusOrderByNameDesc(
-                        category, ProductStatus.ACTIVE, pageable);
-            } else {
-                // Для всех остальных случаев используем стандартный метод
-                productPage = productRepository.findByCategoryAndStatus(
-                        category, ProductStatus.ACTIVE, pageable);
+            if ("name".equals(order.getProperty()) && order.isDescending()) {
+                isDescByName = true;
             }
+        }
+
+        if (isDescByName) {
+            log.info("Using explicit DESC query");
+            productPage = productRepository.findByCategoryAndStatusOrderByNameDesc(
+                    category, ProductStatus.ACTIVE, pageable);
         } else {
-            // Если сортировки нет
+            log.info("Using standard query");
             productPage = productRepository.findByCategoryAndStatus(
                     category, ProductStatus.ACTIVE, pageable);
         }
