@@ -40,31 +40,13 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        // Получаем направление сортировки из запроса
-        String sortParam = sort[0];
-        String direction = sortParam.contains(",") ? sortParam.split(",")[1] : "asc";
+        Sort sortObject = parseSortCorrectly(sort);
+        Pageable pageable = PageRequest.of(page, size, sortObject);
 
-        // Получаем данные из сервиса
-        Pageable pageable = PageRequest.of(page, size);
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        // Сортируем список вручную, если нужно
-        List<ProductDto> content = new ArrayList<>(productPage.getContent());
-        if ("desc".equalsIgnoreCase(direction)) {
-            content.sort((p1, p2) -> p2.getProductName().compareTo(p1.getProductName()));
-        } else {
-            content.sort((p1, p2) -> p1.getProductName().compareTo(p2.getProductName()));
-        }
-
-        // Создаем новый Page с отсортированным контентом
-        // Но сохраняем все остальные метаданные из оригинального page
-        Page<ProductDto> sortedPage = new org.springframework.data.domain.PageImpl<>(
-                content,
-                productPage.getPageable(),
-                productPage.getTotalElements()
-        );
-
-        return ResponseEntity.ok(sortedPage);
+        log.info("Returning page with sort: {}", productPage.getSort());
+        return ResponseEntity.ok(productPage);
     }
 
     @GetMapping(params = "category")
