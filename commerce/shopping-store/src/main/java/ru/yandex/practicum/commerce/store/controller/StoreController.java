@@ -115,37 +115,26 @@ public class StoreController {
     }
 
     private Sort parseSortCorrectly(String[] sort) {
-        log.info("===== SORT DEBUG =====");
-        log.info("Raw sort array: {}", (Object[]) sort);
+        log.info("=== PARSE SORT CORRECTLY ===");
+        log.info("Input sort array: {}", (Object[]) sort);
 
         if (sort == null || sort.length == 0) {
             log.info("No sort parameters, using default: name ASC");
             return Sort.by("name").ascending();
         }
 
-        // Берем только первый элемент сортировки
+        // Берем первый элемент массива (обычно там один элемент "productName,DESC")
         String sortParam = sort[0];
-        log.info("Using first sort param: '{}'", sortParam);
+        log.info("Processing sortParam: '{}'", sortParam);
 
         String[] parts = sortParam.split(",");
         log.info("Split into {} parts: {}", parts.length, (Object[]) parts);
 
-        // Если передан только direction (например "DESC")
-        if (parts.length == 1 && ("ASC".equalsIgnoreCase(parts[0]) || "DESC".equalsIgnoreCase(parts[0]))) {
-            String direction = parts[0];
-            log.info("Only direction provided: {}, using default field 'name'", direction);
-
-            // Используем поле по умолчанию - name
-            if ("desc".equalsIgnoreCase(direction)) {
-                return Sort.by("name").descending();
-            } else {
-                return Sort.by("name").ascending();
-            }
-        }
-
-        // Обычный случай: поле,направление
+        // Определяем поле и направление
         String field = parts[0];
-        log.info("Original field: '{}'", field);
+        String direction = parts.length > 1 ? parts[1] : "asc";
+
+        log.info("Field: '{}', Direction: '{}'", field, direction);
 
         // Маппинг поля
         if ("productName".equals(field)) {
@@ -162,13 +151,19 @@ public class StoreController {
             log.info("Mapped quantityState -> availability");
         }
 
-        if (parts.length > 1 && "desc".equalsIgnoreCase(parts[1])) {
-            log.info("Direction: DESC for field: {}", field);
-            return Sort.by(Sort.Order.desc(field));
+        // Создаем сортировку с одним порядком
+        Sort sortObject;
+        if ("desc".equalsIgnoreCase(direction)) {
+            log.info("Creating DESC sort for field: {}", field);
+            sortObject = Sort.by(Sort.Order.desc(field));
         } else {
-            log.info("Direction: ASC for field: {}", field);
-            return Sort.by(Sort.Order.asc(field));
+            log.info("Creating ASC sort for field: {}", field);
+            sortObject = Sort.by(Sort.Order.asc(field));
         }
+
+        log.info("Returning sort: {}", sortObject);
+        log.info("Sort orders count: {}", sortObject.stream().count());
+        return sortObject;
     }
 
     private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort) {
