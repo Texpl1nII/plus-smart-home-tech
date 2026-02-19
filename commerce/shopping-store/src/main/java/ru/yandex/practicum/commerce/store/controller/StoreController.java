@@ -32,7 +32,7 @@ public class StoreController {
     private final StoreService storeService;
 
     @GetMapping(params = {"category", "page", "size", "sort"})
-    public ResponseEntity<Page<ProductDto>> getProductsWithPagination(
+    public ResponseEntity<PageProductDto> getProductsWithPagination(
             @RequestParam ProductCategory category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -41,12 +41,15 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        Sort sortObject = Sort.by("name").descending(); // Жестко задаем DESC для теста
+        Sort sortObject = parseSortCorrectly(sort);
         Pageable pageable = PageRequest.of(page, size, sortObject);
 
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        return ResponseEntity.ok(productPage);
+        PageProductDto response = convertToPageProductDto(productPage, sortObject);
+        log.info("Response sort: {}", response.getSort());
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping(params = "category")
@@ -159,18 +162,18 @@ public class StoreController {
     }
 
     private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort) {
+        log.info("Converting to PageProductDto with sort: {}", sort);
+
         List<PageProductDto.SortObject> sortObjects = new ArrayList<>();
 
         for (Sort.Order order : sort) {
             String property = order.getProperty();
+            log.info("Original property from Sort.Order: {}", property);
+
+            // Принудительный маппинг
             if ("name".equals(property)) {
                 property = "productName";
-            } else if ("category".equals(property)) {
-                property = "productCategory";
-            } else if ("status".equals(property)) {
-                property = "productState";
-            } else if ("availability".equals(property)) {
-                property = "quantityState";
+                log.info("Mapped to: productName");
             }
 
             PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
@@ -183,6 +186,22 @@ public class StoreController {
                     .empty(false)
                     .build();
             sortObjects.add(sortObj);
+            log.info("Added sort object with property: {}", sortObj.getProperty());
+        }
+
+        // Если sort пустой, создаем дефолтный
+        if (sortObjects.isEmpty()) {
+            log.info("Sort is empty, creating default");
+            PageProductDto.SortObject defaultSort = PageProductDto.SortObject.builder()
+                    .direction("ASC")
+                    .property("productName")
+                    .ascending(true)
+                    .ignoreCase(false)
+                    .sorted(false)
+                    .unsorted(true)
+                    .empty(true)
+                    .build();
+            sortObjects.add(defaultSort);
         }
 
         // Маппинг для sort в pageable
@@ -191,12 +210,6 @@ public class StoreController {
             String property = order.getProperty();
             if ("name".equals(property)) {
                 property = "productName";
-            } else if ("category".equals(property)) {
-                property = "productCategory";
-            } else if ("status".equals(property)) {
-                property = "productState";
-            } else if ("availability".equals(property)) {
-                property = "quantityState";
             }
 
             PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
@@ -217,12 +230,12 @@ public class StoreController {
                 .pageSize(page.getPageable().getPageSize())
                 .paged(page.getPageable().isPaged())
                 .unpaged(page.getPageable().isUnpaged())
-                .sort(pageableSortObjects)
-                .sorted(!pageableSortObjects.isEmpty())
-                .unsorted(pageableSortObjects.isEmpty())
+                .sort(pageableSortObjects.isEmpty() ? sortObjects : pageableSortObjects)
+                .sorted(!pageableSortObjects.isEmpty() || !sortObjects.isEmpty())
+                .unsorted(pageableSortObjects.isEmpty() && sortObjects.isEmpty())
                 .build();
 
-        return PageProductDto.builder()
+        PageProductDto result = PageProductDto.builder()
                 .content(page.getContent())
                 .totalPages(page.getTotalPages())
                 .totalElements(page.getTotalElements())
@@ -231,7 +244,7 @@ public class StoreController {
                 .first(page.isFirst())
                 .last(page.isLast())
                 .empty(page.isEmpty())
-                .sort(sortObjects)  // Теперь передаем список, а не одиночный объект
+                .sort(sortObjects)
                 .pageable(pageableObject)
                 .numberOfElements(page.getNumberOfElements())
                 .hasContent(page.hasContent())
@@ -240,5 +253,8 @@ public class StoreController {
                 .isFirst(page.isFirst())
                 .isLast(page.isLast())
                 .build();
+
+        log.info("Final sort objects in response: {}", result.getSort());
+        return result;
     }
 }
