@@ -41,10 +41,12 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        Sort sortObject = parseSortCorrectly(sort);
+        Pageable pageable = PageRequest.of(page, size, sortObject);
+
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        PageProductDto response = convertToPageProductDto(productPage, Sort.by("name").ascending());
+        PageProductDto response = convertToPageProductDto(productPage, sortObject);
 
         return ResponseEntity.ok(response);
     }
