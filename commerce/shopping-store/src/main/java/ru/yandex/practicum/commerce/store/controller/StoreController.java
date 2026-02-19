@@ -134,17 +134,25 @@ public class StoreController {
 
         log.info("Parsed - field: '{}', direction: '{}'", field, direction);
 
+        String jpaField;
+        if ("productName".equals(field)) {
+            jpaField = "name";
+            log.info("Mapping productName -> name for JPA");
+        } else {
+            jpaField = field;
+        }
+
         Sort.Order order;
         if ("desc".equalsIgnoreCase(direction)) {
-            log.info("Creating DESC order for field: {}", field);
-            order = Sort.Order.desc(field);
+            log.info("Creating DESC order for JPA field: {}", jpaField);
+            order = Sort.Order.desc(jpaField);
         } else {
-            log.info("Creating ASC order for field: {}", field);
-            order = Sort.Order.asc(field);
+            log.info("Creating ASC order for JPA field: {}", jpaField);
+            order = Sort.Order.asc(jpaField);
         }
 
         Sort result = Sort.by(order);
-        log.info("Result sort: {}", result);
+        log.info("Result sort for JPA: {}", result);
         log.info("Result orders: {}", result.stream().collect(Collectors.toList()));
         log.info("----- EXIT parseSortCorrectly -----");
         return result;
@@ -155,9 +163,25 @@ public class StoreController {
 
         List<PageProductDto.SortObject> sortObjects = new ArrayList<>();
         for (Sort.Order order : sort) {
+            // Маппинг поля для ответа
+            String property = order.getProperty();
+            if ("name".equals(property)) {
+                property = "productName";
+                log.info("Mapping name -> productName for response");
+            } else if ("category".equals(property)) {
+                property = "productCategory";
+                log.info("Mapping category -> productCategory for response");
+            } else if ("status".equals(property)) {
+                property = "productState";
+                log.info("Mapping status -> productState for response");
+            } else if ("availability".equals(property)) {
+                property = "quantityState";
+                log.info("Mapping availability -> quantityState for response");
+            }
+
             PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
                     .direction(order.getDirection().name())
-                    .property(order.getProperty())
+                    .property(property)  // Используем маппированное поле
                     .ascending(order.isAscending())
                     .ignoreCase(order.isIgnoreCase())
                     .sorted(true)
@@ -174,7 +198,7 @@ public class StoreController {
         if (mainSortObject == null) {
             mainSortObject = PageProductDto.SortObject.builder()
                     .direction("ASC")
-                    .property("name")
+                    .property("productName")  // Меняем name на productName
                     .ascending(true)
                     .ignoreCase(false)
                     .sorted(false)
@@ -183,15 +207,41 @@ public class StoreController {
                     .build();
         }
 
+        // Маппинг для sort в pageable
+        List<PageProductDto.SortObject> pageableSortObjects = new ArrayList<>();
+        for (Sort.Order order : sort) {
+            String property = order.getProperty();
+            if ("name".equals(property)) {
+                property = "productName";
+            } else if ("category".equals(property)) {
+                property = "productCategory";
+            } else if ("status".equals(property)) {
+                property = "productState";
+            } else if ("availability".equals(property)) {
+                property = "quantityState";
+            }
+
+            PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
+                    .direction(order.getDirection().name())
+                    .property(property)
+                    .ascending(order.isAscending())
+                    .ignoreCase(order.isIgnoreCase())
+                    .sorted(true)
+                    .unsorted(false)
+                    .empty(false)
+                    .build();
+            pageableSortObjects.add(sortObj);
+        }
+
         PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
                 .offset(page.getPageable().getOffset())
                 .pageNumber(page.getPageable().getPageNumber())
                 .pageSize(page.getPageable().getPageSize())
                 .paged(page.getPageable().isPaged())
                 .unpaged(page.getPageable().isUnpaged())
-                .sort(sortObjects)
-                .sorted(!sortObjects.isEmpty())
-                .unsorted(sortObjects.isEmpty())
+                .sort(pageableSortObjects)  // Используем маппированные объекты
+                .sorted(!pageableSortObjects.isEmpty())
+                .unsorted(pageableSortObjects.isEmpty())
                 .build();
 
         return PageProductDto.builder()
