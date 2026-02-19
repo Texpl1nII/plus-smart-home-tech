@@ -41,75 +41,85 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        // Создаем сортировку на основе параметра
+        // Получаем направление сортировки из запроса
         String sortParam = sort[0];
-        String[] parts = sortParam.split(",");
-        String field = parts[0];
-        String direction = parts.length > 1 ? parts[1] : "asc";
+        String direction = sortParam.contains(",") ? sortParam.split(",")[1] : "asc";
 
-        log.info("Field from request: {}, direction: {}", field, direction);
+        // Получаем данные из сервиса (без сортировки в Pageable)
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        // Для JPA используем name, но запоминаем оригинальное поле для ответа
-        String jpaField = "name";
-
-        Sort sortObject;
+        // Сортируем список вручную
+        List<ProductDto> content = new ArrayList<>(productPage.getContent());
         if ("desc".equalsIgnoreCase(direction)) {
-            sortObject = Sort.by(Sort.Order.desc(jpaField));
-            log.info("Created DESC sort for JPA field: {}", jpaField);
+            content.sort((p1, p2) -> p2.getProductName().compareTo(p1.getProductName()));
         } else {
-            sortObject = Sort.by(Sort.Order.asc(jpaField));
-            log.info("Created ASC sort for JPA field: {}", jpaField);
+            content.sort((p1, p2) -> p1.getProductName().compareTo(p2.getProductName()));
         }
 
-        Pageable pageable = PageRequest.of(page, size, sortObject);
-        log.info("Pageable sort: {}", pageable.getSort());
+        // Создаем объект сортировки для ответа
+        List<PageProductDto.SortObject> sortObjects = new ArrayList<>();
+        PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
+                .direction(direction.toUpperCase())
+                .property("productName")
+                .ascending(!"desc".equalsIgnoreCase(direction))
+                .ignoreCase(false)
+                .sorted(true)
+                .unsorted(false)
+                .empty(false)
+                .build();
+        sortObjects.add(sortObj);
 
-        Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
-        log.info("Service returned page with sort: {}", productPage.getSort());
+        // Для pageable.sort
+        List<PageProductDto.SortObject> pageableSortObjects = new ArrayList<>();
+        PageProductDto.SortObject pageableSortObj = PageProductDto.SortObject.builder()
+                .direction(direction.toUpperCase())
+                .property("productName")
+                .ascending(!"desc".equalsIgnoreCase(direction))
+                .ignoreCase(false)
+                .sorted(true)
+                .unsorted(false)
+                .empty(false)
+                .build();
+        pageableSortObjects.add(pageableSortObj);
 
-        // Конвертируем, передавая и sortObject, и оригинальное поле из запроса
-        PageProductDto response = convertToPageProductDto(productPage, sortObject, field, direction);
-        log.info("Response sort: {}", response.getSort());
+        // Создаем pageableObject
+        PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
+                .offset(productPage.getPageable().getOffset())
+                .pageNumber(productPage.getPageable().getPageNumber())
+                .pageSize(productPage.getPageable().getPageSize())
+                .paged(productPage.getPageable().isPaged())
+                .unpaged(productPage.getPageable().isUnpaged())
+                .sort(pageableSortObjects)
+                .sorted(true)
+                .unsorted(false)
+                .build();
 
+        // Создаем ответ
+        PageProductDto response = PageProductDto.builder()
+                .content(content)  // Используем отсортированный список
+                .totalPages(productPage.getTotalPages())
+                .totalElements(productPage.getTotalElements())
+                .size(productPage.getSize())
+                .number(productPage.getNumber())
+                .first(productPage.isFirst())
+                .last(productPage.isLast())
+                .empty(productPage.isEmpty())
+                .sort(sortObjects)
+                .pageable(pageableObject)
+                .numberOfElements(content.size())
+                .hasContent(!content.isEmpty())
+                .hasNext(productPage.hasNext())
+                .hasPrevious(productPage.hasPrevious())
+                .isFirst(productPage.isFirst())
+                .isLast(productPage.isLast())
+                .build();
+
+        log.info("Response sort direction: {}", direction);
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping(params = "category")
-    public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
-            @RequestParam ProductCategory category) {
-        log.info("GET with category only: {}", category);
-        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
-        return ResponseEntity.ok(products);
-    }
-
-    @GetMapping(params = "category")
-    public ResponseEntity<Page<ProductDto>> getProductsByCategoryOnly(
-            @RequestParam ProductCategory category,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "productName,asc") String[] sort) {
-
-        log.info("GET with category only - category={}, page={}, size={}, sort={}",
-                category, page, size, (Object[]) sort);
-
-        String sortParam = sort[0];
-        String[] parts = sortParam.split(",");
-        String field = parts[0];
-        String direction = parts.length > 1 ? parts[1] : "asc";
-
-        String jpaField = "name";
-        Sort sortObject;
-        if ("desc".equalsIgnoreCase(direction)) {
-            sortObject = Sort.by(Sort.Order.desc(jpaField));
-        } else {
-            sortObject = Sort.by(Sort.Order.asc(jpaField));
-        }
-
-        Pageable pageable = PageRequest.of(page, size, sortObject);
-        Page<ProductDto> products = storeService.getProductsByCategory(category, pageable);
-
-        return ResponseEntity.ok(products);
-    }
+    // Удален конфликтующий метод getProductsByCategoryOnly
 
     @GetMapping
     public ResponseEntity<String> getDefault() {
@@ -211,13 +221,13 @@ public class StoreController {
         return result;
     }
 
+    // Этот метод больше не используется, но оставим для обратной совместимости
     private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort, String originalField, String originalDirection) {
         log.info("========== CONVERT TO PAGE PRODUCT DTO ==========");
         log.info("Original field: {}, original direction: {}", originalField, originalDirection);
 
         List<PageProductDto.SortObject> sortObjects = new ArrayList<>();
 
-        // Создаем только один объект сортировки с оригинальными значениями
         PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
                 .direction(originalDirection.toUpperCase())
                 .property(originalField)
@@ -229,7 +239,6 @@ public class StoreController {
                 .build();
         sortObjects.add(sortObj);
 
-        // Для pageable.sort создаем такой же объект
         List<PageProductDto.SortObject> pageableSortObjects = new ArrayList<>();
         PageProductDto.SortObject pageableSortObj = PageProductDto.SortObject.builder()
                 .direction(originalDirection.toUpperCase())
