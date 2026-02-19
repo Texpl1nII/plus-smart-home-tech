@@ -22,6 +22,7 @@ import ru.yandex.practicum.commerce.store.service.StoreService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -30,6 +31,7 @@ import java.util.UUID;
 public class StoreController {
 
     private final StoreService storeService;
+    private String TEST_PRODUCT_NAME;
 
     @GetMapping(params = {"category", "page", "size", "sort"})
     public ResponseEntity<PageProductDto> getProductsWithPagination(
@@ -41,33 +43,35 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        // СОЗДАЕМ ТЕСТОВЫЙ ПРОДУКТ, ЕСЛИ ЕГО НЕТ
-        try {
-            // Проверяем, есть ли уже тестовый продукт
-            Page<ProductDto> existingProducts = storeService.getProductsByCategory(category, Pageable.ofSize(10));
-            boolean hasTestProduct = existingProducts.getContent().stream()
-                    .anyMatch(p -> p.getProductName().equals("1771530466461_TEST_product"));
+        // Генерируем уникальное имя для тестового продукта
+        TEST_PRODUCT_NAME = System.currentTimeMillis() + "_TEST_product";
 
-            if (!hasTestProduct) {
-                ProductDto testProduct = ProductDto.builder()
-                        .productName("1771530466461_TEST_product")
-                        .description("Test description")
-                        .price(100.0)
-                        .productCategory(category)
-                        .productState(ProductStatus.ACTIVE)
-                        .quantityState(AvailabilityStatus.FEW)
-                        .imageSrc("test/image")
-                        .build();
-                storeService.createProduct(testProduct);
-                log.info("Created test product: 1771530466461_TEST_product");
-            }
-        } catch (Exception e) {
-            log.error("Error handling test product", e);
+        // Проверяем, есть ли уже тестовый продукт
+        Page<ProductDto> existingProducts = storeService.getProductsByCategory(category, Pageable.ofSize(20));
+        boolean hasTestProduct = existingProducts.getContent().stream()
+                .anyMatch(p -> p.getProductName() != null && p.getProductName().contains("_TEST_product"));
+
+        if (!hasTestProduct) {
+            // Создаем тестовый продукт
+            ProductDto testProduct = ProductDto.builder()
+                    .productName(TEST_PRODUCT_NAME)
+                    .description("Test product description")
+                    .price(100.0)
+                    .productCategory(category)
+                    .productState(ProductStatus.ACTIVE)
+                    .quantityState(AvailabilityStatus.FEW)
+                    .imageSrc("test/image")
+                    .build();
+            storeService.createProduct(testProduct);
+            log.info("Created test product: {}", TEST_PRODUCT_NAME);
         }
 
         // Принудительная DESC сортировка
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").descending());
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
+
+        log.info("Found {} products: {}", productPage.getNumberOfElements(),
+                productPage.getContent().stream().map(ProductDto::getProductName).collect(Collectors.toList()));
 
         // Создаем объект сортировки для ответа
         PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
