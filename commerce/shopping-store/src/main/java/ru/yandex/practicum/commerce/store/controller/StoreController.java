@@ -74,87 +74,34 @@ public class StoreController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/test/products")
-    public ResponseEntity<PageProductDto> getProductsForTest(
+    @GetMapping(params = "category")
+    public ResponseEntity<Page<ProductDto>> getProductsByCategoryOnly(
             @RequestParam ProductCategory category,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "150") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "productName,asc") String[] sort) {
 
-        log.info("TEST endpoint - getting products with forced DESC sorting");
+        log.info("GET with category only - category={}, page={}, size={}, sort={}",
+                category, page, size, (Object[]) sort);
 
-        // Принудительно создаем сортировку DESC по name для JPA
-        Sort sortObject = Sort.by(Sort.Order.desc("name"));
+        // Создаем сортировку
+        String sortParam = sort[0];
+        String[] parts = sortParam.split(",");
+        String field = parts[0];
+        String direction = parts.length > 1 ? parts[1] : "asc";
+
+        // Маппим поле для JPA
+        String jpaField = "name";
+        Sort sortObject;
+        if ("desc".equalsIgnoreCase(direction)) {
+            sortObject = Sort.by(Sort.Order.desc(jpaField));
+        } else {
+            sortObject = Sort.by(Sort.Order.asc(jpaField));
+        }
+
         Pageable pageable = PageRequest.of(page, size, sortObject);
+        Page<ProductDto> products = storeService.getProductsByCategory(category, pageable);
 
-        // Получаем данные
-        Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
-
-        // Вручную создаем объект сортировки для ответа
-        List<PageProductDto.SortObject> sortObjects = new ArrayList<>();
-        PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
-                .direction("DESC")
-                .property("productName")
-                .ascending(false)
-                .ignoreCase(false)
-                .sorted(true)
-                .unsorted(false)
-                .empty(false)
-                .build();
-        sortObjects.add(sortObj);
-
-        // Для pageable.sort
-        List<PageProductDto.SortObject> pageableSortObjects = new ArrayList<>();
-        PageProductDto.SortObject pageableSortObj = PageProductDto.SortObject.builder()
-                .direction("DESC")
-                .property("productName")
-                .ascending(false)
-                .ignoreCase(false)
-                .sorted(true)
-                .unsorted(false)
-                .empty(false)
-                .build();
-        pageableSortObjects.add(pageableSortObj);
-
-        // Создаем pageableObject
-        PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
-                .offset(productPage.getPageable().getOffset())
-                .pageNumber(productPage.getPageable().getPageNumber())
-                .pageSize(productPage.getPageable().getPageSize())
-                .paged(productPage.getPageable().isPaged())
-                .unpaged(productPage.getPageable().isUnpaged())
-                .sort(pageableSortObjects)
-                .sorted(true)
-                .unsorted(false)
-                .build();
-
-        // Создаем ответ
-        PageProductDto response = PageProductDto.builder()
-                .content(productPage.getContent())
-                .totalPages(productPage.getTotalPages())
-                .totalElements(productPage.getTotalElements())
-                .size(productPage.getSize())
-                .number(productPage.getNumber())
-                .first(productPage.isFirst())
-                .last(productPage.isLast())
-                .empty(productPage.isEmpty())
-                .sort(sortObjects)
-                .pageable(pageableObject)
-                .numberOfElements(productPage.getNumberOfElements())
-                .hasContent(productPage.hasContent())
-                .hasNext(productPage.hasNext())
-                .hasPrevious(productPage.hasPrevious())
-                .isFirst(productPage.isFirst())
-                .isLast(productPage.isLast())
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping(params = "category")
-    public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
-            @RequestParam ProductCategory category) {
-        log.info("GET with category only: {}", category);
-        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
         return ResponseEntity.ok(products);
     }
 
