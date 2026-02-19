@@ -41,14 +41,12 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        // Создаем сортировку
         String sortParam = sort[0];
         String[] parts = sortParam.split(",");
         String field = parts[0];
         String direction = parts.length > 1 ? parts[1] : "asc";
 
-        // Маппим поле для JPA
-        String jpaField = "name"; // Всегда сортируем по name в БД
+        String jpaField = "name";
 
         Sort sortObject;
         if ("desc".equalsIgnoreCase(direction)) {
@@ -62,7 +60,7 @@ public class StoreController {
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
         // Конвертируем в PageProductDto с правильными именами полей для ответа
-        PageProductDto response = convertToPageProductDto(productPage, sortObject, field);
+        PageProductDto response = convertToPageProductDto(productPage, sortObject);
 
         return ResponseEntity.ok(response);
     }
@@ -176,13 +174,32 @@ public class StoreController {
         return result;
     }
 
-    private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort, String originalField) {
+    private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort) {
+        log.info("========== CONVERT TO PAGE PRODUCT DTO ==========");
+
         List<PageProductDto.SortObject> sortObjects = new ArrayList<>();
 
         for (Sort.Order order : sort) {
+            String property = order.getProperty();
+            log.info("Original property: {}", property);
+
+            String responseProperty;
+            if ("name".equals(property)) {
+                responseProperty = "productName";
+                log.info("Mapping name -> productName");
+            } else if ("category".equals(property)) {
+                responseProperty = "productCategory";
+            } else if ("status".equals(property)) {
+                responseProperty = "productState";
+            } else if ("availability".equals(property)) {
+                responseProperty = "quantityState";
+            } else {
+                responseProperty = property;
+            }
+
             PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
                     .direction(order.getDirection().name())
-                    .property(originalField) // Используем оригинальное поле из запроса
+                    .property(responseProperty)
                     .ascending(order.isAscending())
                     .ignoreCase(order.isIgnoreCase())
                     .sorted(true)
@@ -192,12 +209,27 @@ public class StoreController {
             sortObjects.add(sortObj);
         }
 
-        // Аналогично для pageable.sort
         List<PageProductDto.SortObject> pageableSortObjects = new ArrayList<>();
+
         for (Sort.Order order : sort) {
+            String property = order.getProperty();
+
+            String responseProperty;
+            if ("name".equals(property)) {
+                responseProperty = "productName";
+            } else if ("category".equals(property)) {
+                responseProperty = "productCategory";
+            } else if ("status".equals(property)) {
+                responseProperty = "productState";
+            } else if ("availability".equals(property)) {
+                responseProperty = "quantityState";
+            } else {
+                responseProperty = property;
+            }
+
             PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
                     .direction(order.getDirection().name())
-                    .property(originalField)
+                    .property(responseProperty)
                     .ascending(order.isAscending())
                     .ignoreCase(order.isIgnoreCase())
                     .sorted(true)
@@ -207,18 +239,20 @@ public class StoreController {
             pageableSortObjects.add(sortObj);
         }
 
+        // 3. Создаем PageableObject
         PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
                 .offset(page.getPageable().getOffset())
                 .pageNumber(page.getPageable().getPageNumber())
                 .pageSize(page.getPageable().getPageSize())
                 .paged(page.getPageable().isPaged())
                 .unpaged(page.getPageable().isUnpaged())
-                .sort(pageableSortObjects)
+                .sort(pageableSortObjects)  // Используем маппированные объекты
                 .sorted(!pageableSortObjects.isEmpty())
                 .unsorted(pageableSortObjects.isEmpty())
                 .build();
 
-        return PageProductDto.builder()
+        // 4. Создаем и возвращаем PageProductDto
+        PageProductDto result = PageProductDto.builder()
                 .content(page.getContent())
                 .totalPages(page.getTotalPages())
                 .totalElements(page.getTotalElements())
@@ -227,7 +261,7 @@ public class StoreController {
                 .first(page.isFirst())
                 .last(page.isLast())
                 .empty(page.isEmpty())
-                .sort(sortObjects)
+                .sort(sortObjects)  // Основной sort с маппированными полями
                 .pageable(pageableObject)
                 .numberOfElements(page.getNumberOfElements())
                 .hasContent(page.hasContent())
@@ -236,5 +270,10 @@ public class StoreController {
                 .isFirst(page.isFirst())
                 .isLast(page.isLast())
                 .build();
+
+        log.info("Final sort objects: {}", result.getSort());
+        log.info("Final pageable sort objects: {}", result.getPageable().getSort());
+
+        return result;
     }
 }
