@@ -32,6 +32,20 @@ public class StoreServiceImpl implements StoreService {
     private final ProductMapper productMapper;
 
     @Override
+    @Transactional
+    public ProductDto updateProduct(UUID productId, ProductDto productDto) {
+        log.info("Updating product with id: {}", productId);
+
+        Product product = findProductById(productId);  // ← ИЗМЕНЕНО!
+        productMapper.updateProductFromDto(productDto, product);
+
+        Product updatedProduct = productRepository.save(product);
+        log.info("Product updated successfully");
+
+        return productMapper.toDto(updatedProduct);
+    }
+
+    @Override
     public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
         log.info("Getting products by category: {} with pageable: {}", category, pageable);
 
@@ -84,20 +98,6 @@ public class StoreServiceImpl implements StoreService {
         productRepository.flush();
 
         return productMapper.toDto(savedProduct);
-    }
-
-    @Override
-    @Transactional
-    public ProductDto updateProduct(UUID productId, ProductDto productDto) {
-        log.info("Updating product with id: {}", productId);
-
-        Product product = findProductById(productId);  // ← ИЗМЕНЕНО!
-        productMapper.updateProductFromDto(productDto, product);
-
-        Product updatedProduct = productRepository.save(product);
-        log.info("Product updated successfully");
-
-        return productMapper.toDto(updatedProduct);
     }
 
     @Override
