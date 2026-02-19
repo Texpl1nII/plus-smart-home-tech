@@ -19,7 +19,6 @@ import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,24 +38,29 @@ public class StoreController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "productName,asc") String[] sort) {
 
-        log.info("========== GET PRODUCTS DEBUG ==========");
-        log.info("1. Raw sort array from request: {}", (Object[]) sort);
-        log.info("1a. Sort array length: {}", sort.length);
-        log.info("1b. Sort array elements: {}", Arrays.toString(sort));
+        log.info("GET with pagination - category={}&page={}&size={}&sort={}",
+                category, page, size, (Object[]) sort);
 
-        Sort sortObject = parseSortCorrectly(sort);
-        log.info("2. Sort object created: {}", sortObject);
-        log.info("2a. Sort orders: {}", sortObject.stream().collect(Collectors.toList()));
+        String sortParam = sort[0];
+        String[] parts = sortParam.split(",");
+
+        String field = parts[0];
+        if ("productName".equals(field)) {
+            field = "name";
+        }
+
+        Sort sortObject;
+        if (parts.length > 1 && "desc".equalsIgnoreCase(parts[1])) {
+            sortObject = Sort.by(Sort.Order.desc(field));
+            log.info("Using DESC sorting for field: {}", field);
+        } else {
+            sortObject = Sort.by(Sort.Order.asc(field));
+            log.info("Using ASC sorting for field: {}", field);
+        }
 
         Pageable pageable = PageRequest.of(page, size, sortObject);
-        log.info("3. Pageable created: {}", pageable);
-        log.info("3a. Pageable sort: {}", pageable.getSort());
 
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
-        log.info("4. Service returned page with sort: {}", productPage.getSort());
-
-        log.info("5. Response will have sort: {}", productPage.getSort());
-        log.info("========================================");
 
         return ResponseEntity.ok(productPage);
     }
