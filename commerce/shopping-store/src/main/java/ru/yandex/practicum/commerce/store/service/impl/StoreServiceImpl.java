@@ -32,17 +32,21 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public Page<ProductDto> getProductsByCategory(ProductCategory category, Pageable pageable) {
-        log.info("Getting products by category: {} with pageable: {}", category, pageable);
+        log.info("=== StoreServiceImpl.getProductsByCategory ===");
+        log.info("Category: {}", category);
+        log.info("Pageable: {}", pageable);
+        log.info("Pageable sort: {}", pageable.getSort());
+        log.info("Pageable sort orders: {}", pageable.getSort().stream().collect(Collectors.toList()));
 
         Page<Product> productPage = productRepository.findByCategoryAndStatus(
                 category, ProductStatus.ACTIVE, pageable);
 
-        log.info("Found {} products, total elements: {}, total pages: {}",
-                productPage.getNumberOfElements(),
-                productPage.getTotalElements(),
-                productPage.getTotalPages());
+        log.info("Repository returned page with sort: {}", productPage.getSort());
 
-        return productPage.map(productMapper::toDto);
+        Page<ProductDto> result = productPage.map(productMapper::toDto);
+        log.info("Returning page with sort: {}", result.getSort());
+
+        return result;
     }
 
     @Override

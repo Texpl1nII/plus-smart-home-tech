@@ -19,6 +19,7 @@ import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,13 +39,24 @@ public class StoreController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "productName,asc") String[] sort) {
 
-        log.info("GET with pagination - category={}&page={}&size={}&sort={}",
-                category, page, size, (Object[]) sort);
+        log.info("========== GET PRODUCTS DEBUG ==========");
+        log.info("1. Raw sort array from request: {}", (Object[]) sort);
+        log.info("1a. Sort array length: {}", sort.length);
+        log.info("1b. Sort array elements: {}", Arrays.toString(sort));
 
         Sort sortObject = parseSortCorrectly(sort);
+        log.info("2. Sort object created: {}", sortObject);
+        log.info("2a. Sort orders: {}", sortObject.stream().collect(Collectors.toList()));
+
         Pageable pageable = PageRequest.of(page, size, sortObject);
+        log.info("3. Pageable created: {}", pageable);
+        log.info("3a. Pageable sort: {}", pageable.getSort());
 
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
+        log.info("4. Service returned page with sort: {}", productPage.getSort());
+
+        log.info("5. Response will have sort: {}", productPage.getSort());
+        log.info("========================================");
 
         return ResponseEntity.ok(productPage);
     }
@@ -115,55 +127,44 @@ public class StoreController {
     }
 
     private Sort parseSortCorrectly(String[] sort) {
-        log.info("=== PARSE SORT CORRECTLY ===");
-        log.info("Input sort array: {}", (Object[]) sort);
+        log.info("----- INSIDE parseSortCorrectly -----");
+        log.info("Input: {}", (Object[]) sort);
 
         if (sort == null || sort.length == 0) {
-            log.info("No sort parameters, using default: name ASC");
+            log.info("No sort, using default ASC");
             return Sort.by("name").ascending();
         }
 
-        // Берем первый элемент массива (обычно там один элемент "productName,DESC")
         String sortParam = sort[0];
-        log.info("Processing sortParam: '{}'", sortParam);
+        log.info("Using sortParam[0]: '{}'", sortParam);
 
         String[] parts = sortParam.split(",");
         log.info("Split into {} parts: {}", parts.length, (Object[]) parts);
 
-        // Определяем поле и направление
         String field = parts[0];
         String direction = parts.length > 1 ? parts[1] : "asc";
 
-        log.info("Field: '{}', Direction: '{}'", field, direction);
+        log.info("Parsed - field: '{}', direction: '{}'", field, direction);
 
-        // Маппинг поля
         if ("productName".equals(field)) {
             field = "name";
-            log.info("Mapped productName -> name");
-        } else if ("productCategory".equals(field)) {
-            field = "category";
-            log.info("Mapped productCategory -> category");
-        } else if ("productState".equals(field)) {
-            field = "status";
-            log.info("Mapped productState -> status");
-        } else if ("quantityState".equals(field)) {
-            field = "availability";
-            log.info("Mapped quantityState -> availability");
+            log.info("Mapped to field: '{}'", field);
         }
 
-        // Создаем сортировку с одним порядком
-        Sort sortObject;
+        Sort.Order order;
         if ("desc".equalsIgnoreCase(direction)) {
-            log.info("Creating DESC sort for field: {}", field);
-            sortObject = Sort.by(Sort.Order.desc(field));
+            log.info("Creating DESC order for field: {}", field);
+            order = Sort.Order.desc(field);
         } else {
-            log.info("Creating ASC sort for field: {}", field);
-            sortObject = Sort.by(Sort.Order.asc(field));
+            log.info("Creating ASC order for field: {}", field);
+            order = Sort.Order.asc(field);
         }
 
-        log.info("Returning sort: {}", sortObject);
-        log.info("Sort orders count: {}", sortObject.stream().count());
-        return sortObject;
+        Sort result = Sort.by(order);
+        log.info("Result sort: {}", result);
+        log.info("Result orders: {}", result.stream().collect(Collectors.toList()));
+        log.info("----- EXIT parseSortCorrectly -----");
+        return result;
     }
 
     private PageProductDto convertToPageProductDto(Page<ProductDto> page, Sort sort) {
