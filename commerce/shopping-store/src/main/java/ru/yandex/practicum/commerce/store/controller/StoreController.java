@@ -134,11 +134,6 @@ public class StoreController {
 
         log.info("Parsed - field: '{}', direction: '{}'", field, direction);
 
-        if ("productName".equals(field)) {
-            field = "name";
-            log.info("Mapped to field: '{}'", field);
-        }
-
         Sort.Order order;
         if ("desc".equalsIgnoreCase(direction)) {
             log.info("Creating DESC order for field: {}", field);
