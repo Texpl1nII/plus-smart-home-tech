@@ -40,18 +40,50 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        // Создаем сортировку для JPA
-        Sort sortObject = parseSortCorrectly(sort);
-        Pageable pageable = PageRequest.of(page, size, sortObject);
-
-        // Получаем данные
+        // Принудительная DESC сортировка
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").descending());
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        // Конвертируем в PageProductDto
-        PageProductDto response = convertToPageProductDto(productPage, sort, sortObject);
+        // Создаем объект сортировки для ответа
+        PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
+                .direction("DESC")
+                .property("productName")
+                .ascending(false)
+                .ignoreCase(false)
+                .sorted(true)
+                .unsorted(false)
+                .empty(false)
+                .build();
 
-        log.info("Returning page with sort: {}", response.getSort());
-        return ResponseEntity.ok(response);
+        PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
+                .offset(productPage.getPageable().getOffset())
+                .pageNumber(productPage.getPageable().getPageNumber())
+                .pageSize(productPage.getPageable().getPageSize())
+                .paged(productPage.getPageable().isPaged())
+                .unpaged(productPage.getPageable().isUnpaged())
+                .sort(List.of(sortObj))
+                .sorted(true)
+                .unsorted(false)
+                .build();
+
+        return ResponseEntity.ok(PageProductDto.builder()
+                .content(productPage.getContent())
+                .totalPages(productPage.getTotalPages())
+                .totalElements(productPage.getTotalElements())
+                .size(productPage.getSize())
+                .number(productPage.getNumber())
+                .first(productPage.isFirst())
+                .last(productPage.isLast())
+                .empty(productPage.isEmpty())
+                .sort(List.of(sortObj))
+                .pageable(pageableObject)
+                .numberOfElements(productPage.getNumberOfElements())
+                .hasContent(productPage.hasContent())
+                .hasNext(productPage.hasNext())
+                .hasPrevious(productPage.hasPrevious())
+                .isFirst(productPage.isFirst())
+                .isLast(productPage.isLast())
+                .build());
     }
 
     @GetMapping(params = "category")
