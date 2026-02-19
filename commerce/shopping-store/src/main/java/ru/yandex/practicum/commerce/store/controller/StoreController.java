@@ -133,6 +133,21 @@ public class StoreController {
             String[] parts = sortParam.split(",");
             log.info("Split into {} parts: {}", parts.length, (Object[]) parts);
 
+            // Если передан только direction (например "DESC")
+            if (parts.length == 1 && ("ASC".equalsIgnoreCase(parts[0]) || "DESC".equalsIgnoreCase(parts[0]))) {
+                String direction = parts[0];
+                log.info("Only direction provided: {}, using default field 'name'", direction);
+
+                // Используем поле по умолчанию - name
+                if ("desc".equalsIgnoreCase(direction)) {
+                    orders.add(Sort.Order.desc("name"));
+                } else {
+                    orders.add(Sort.Order.asc("name"));
+                }
+                continue;
+            }
+
+            // Обычный случай: поле,направление
             String field = parts[0];
             log.info("Original field: '{}'", field);
 
@@ -159,6 +174,12 @@ public class StoreController {
                 log.info("Direction: ASC for field: {}", field);
                 orders.add(Sort.Order.asc(field));
             }
+        }
+
+        // Если orders пустой (например, пришли пустые параметры)
+        if (orders.isEmpty()) {
+            log.info("No valid sort orders, using default: name ASC");
+            orders.add(Sort.Order.asc("name"));
         }
 
         Sort result = Sort.by(orders);
