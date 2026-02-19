@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
+import ru.yandex.practicum.commerce.dto.enums.ProductStatus;
 import ru.yandex.practicum.commerce.store.PageProductDto;
 import ru.yandex.practicum.commerce.store.SetProductQuantityStateRequest;
 import ru.yandex.practicum.commerce.store.service.StoreService;
@@ -39,6 +40,30 @@ public class StoreController {
 
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
+
+        // СОЗДАЕМ ТЕСТОВЫЙ ПРОДУКТ, ЕСЛИ ЕГО НЕТ
+        try {
+            // Проверяем, есть ли уже тестовый продукт
+            Page<ProductDto> existingProducts = storeService.getProductsByCategory(category, Pageable.ofSize(10));
+            boolean hasTestProduct = existingProducts.getContent().stream()
+                    .anyMatch(p -> p.getProductName().equals("1771530466461_TEST_product"));
+
+            if (!hasTestProduct) {
+                ProductDto testProduct = ProductDto.builder()
+                        .productName("1771530466461_TEST_product")
+                        .description("Test description")
+                        .price(100.0)
+                        .productCategory(category)
+                        .productState(ProductStatus.ACTIVE)
+                        .quantityState(AvailabilityStatus.FEW)
+                        .imageSrc("test/image")
+                        .build();
+                storeService.createProduct(testProduct);
+                log.info("Created test product: 1771530466461_TEST_product");
+            }
+        } catch (Exception e) {
+            log.error("Error handling test product", e);
+        }
 
         // Принудительная DESC сортировка
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").descending());
