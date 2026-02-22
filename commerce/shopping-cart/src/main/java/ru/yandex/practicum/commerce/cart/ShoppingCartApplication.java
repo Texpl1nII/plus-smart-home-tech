@@ -8,8 +8,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-@EnableTransactionManagement
 @EnableFeignClients(basePackages = "ru.yandex.practicum.commerce.client")
+@EnableTransactionManagement
 public class ShoppingCartApplication {
     public static void main(String[] args) {
         SpringApplication.run(ShoppingCartApplication.class, args);
