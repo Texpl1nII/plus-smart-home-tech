@@ -262,17 +262,32 @@ public class CartServiceImpl implements CartService {
                     .username(username)
                     .build();
 
-            log.info("Checking availability for product: {}", productId);
+            log.info("========== CHECK AVAILABILITY ==========");
+            log.info("Calling warehouse for product: {}", productId);
+            log.info("WarehouseClient instance: {}", warehouseClient.getClass().getName());
+            log.info("Request: {}", request);
+
+            long startTime = System.currentTimeMillis();
             ProductAvailabilityResponse response = warehouseClient.checkAvailability(request);
+            long endTime = System.currentTimeMillis();
+
+            log.info("Warehouse response received in {} ms", (endTime - startTime));
+            log.info("Response: {}", response);
+            log.info("Response available: {}", response.isAvailable());
 
             if (!response.isAvailable()) {
                 throw new ProductNotFoundException(
                         "Product not available in warehouse: " + productId);
             }
         } catch (FeignException.NotFound e) {
-            log.error("Warehouse service returned 404 for product: {}", productId);
+            log.error("Warehouse service returned 404 for product: {}", productId, e);
             throw new ProductNotFoundException(
                     "Product not found in warehouse: " + productId);
+        } catch (FeignException e) {
+            log.error("Feign error calling warehouse for product: {}", productId, e);
+            log.error("Feign status: {}", e.status());
+            log.error("Feign content: {}", e.contentUTF8());
+            throw new RuntimeException("Warehouse service error", e);
         } catch (Exception e) {
             log.error("Error checking availability for product: {}", productId, e);
             throw new RuntimeException("Warehouse service unavailable", e);
