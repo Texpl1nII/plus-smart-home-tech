@@ -37,10 +37,10 @@ public class WarehouseController {
         warehouseService.addNewProduct(request);
     }
 
-    @PostMapping("/check-availability")
+    @PostMapping("/check")
     public ProductAvailabilityResponse checkAvailability(
             @Valid @RequestBody ProductAvailabilityRequest request) {
-        log.info("POST /check-availability for user: {}", request.getUsername());
+        log.info("POST /check for user: {}", request.getUsername());
         return warehouseService.checkAvailability(request);
     }
 
