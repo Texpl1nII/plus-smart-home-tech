@@ -1,5 +1,6 @@
 package ru.yandex.practicum.commerce.cart.service.impl;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -138,38 +139,42 @@ public class CartServiceImpl implements CartService {
     public ShoppingCartDto addProductsToCart(String username, Map<UUID, Long> products) {
         log.info("Adding multiple products to cart for user: {}", username);
 
-        // Пытаемся найти активную корзину
-        Optional<ShoppingCart> activeCart = cartRepository.findByUserIdAndActiveTrue(username);
-        ShoppingCart cart;
-
-        if (activeCart.isPresent()) {
-            cart = activeCart.get();
-        } else {
-            // Если нет активной, но есть неактивная - создаем новую
-            cart = createNewCart(username);
+        // Сначала проверяем все продукты
+        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+            try {
+                checkAvailability(username, entry.getKey(), entry.getValue().intValue());
+            } catch (ProductNotFoundException e) {
+                log.warn("Product {} not available, skipping", entry.getKey());
+                // Пропускаем недоступный продукт
+            }
         }
+
+        ShoppingCart cart = cartRepository.findByUserIdAndActiveTrue(username)
+                .orElseGet(() -> createNewCart(username));
 
         for (Map.Entry<UUID, Long> entry : products.entrySet()) {
             UUID productId = entry.getKey();
             Integer quantity = entry.getValue().intValue();
 
-            checkAvailability(username, productId, quantity);
+            try {
+                CartItem existingItem = itemRepository.findByCartAndProductId(cart, productId)
+                        .orElse(null);
 
-            CartItem existingItem = itemRepository.findByCartAndProductId(cart, productId)
-                    .orElse(null);
-
-            if (existingItem != null) {
-                existingItem.setQuantity(existingItem.getQuantity() + quantity);
-                itemRepository.save(existingItem);
-            } else {
-                CartItem newItem = CartItem.builder()
-                        .cart(cart)
-                        .productId(productId)
-                        .quantity(quantity)
-                        .price(0.0)
-                        .build();
-                cart.getItems().add(newItem);
-                itemRepository.save(newItem);
+                if (existingItem != null) {
+                    existingItem.setQuantity(existingItem.getQuantity() + quantity);
+                    itemRepository.save(existingItem);
+                } else {
+                    CartItem newItem = CartItem.builder()
+                            .cart(cart)
+                            .productId(productId)
+                            .quantity(quantity)
+                            .price(0.0)
+                            .build();
+                    cart.getItems().add(newItem);
+                    itemRepository.save(newItem);
+                }
+            } catch (Exception e) {
+                log.error("Error adding product {} to cart", productId, e);
             }
         }
 
@@ -248,19 +253,29 @@ public class CartServiceImpl implements CartService {
     }
 
     private void checkAvailability(String username, UUID productId, Integer quantity) {
-        Map<UUID, Integer> products = new HashMap<>();
-        products.put(productId, quantity);
+        try {
+            Map<UUID, Integer> products = new HashMap<>();
+            products.put(productId, quantity);
 
-        ProductAvailabilityRequest request = ProductAvailabilityRequest.builder()
-                .products(products)
-                .username(username)
-                .build();
+            ProductAvailabilityRequest request = ProductAvailabilityRequest.builder()
+                    .products(products)
+                    .username(username)
+                    .build();
 
-        ProductAvailabilityResponse response = warehouseClient.checkAvailability(request);
+            log.info("Checking availability for product: {}", productId);
+            ProductAvailabilityResponse response = warehouseClient.checkAvailability(request);
 
-        if (!response.isAvailable()) {
+            if (!response.isAvailable()) {
+                throw new ProductNotFoundException(
+                        "Product not available in warehouse: " + productId);
+            }
+        } catch (FeignException.NotFound e) {
+            log.error("Warehouse service returned 404 for product: {}", productId);
             throw new ProductNotFoundException(
-                    "Product not available in warehouse: " + productId);
+                    "Product not found in warehouse: " + productId);
+        } catch (Exception e) {
+            log.error("Error checking availability for product: {}", productId, e);
+            throw new RuntimeException("Warehouse service unavailable", e);
         }
     }
 }
