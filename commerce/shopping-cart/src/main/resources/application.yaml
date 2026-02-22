@@ -28,6 +28,9 @@ spring:
 server:
   port: 0
 
+warehouse:
+  url: http://10.1.0.23:42327
+
 eureka:
   client:
     serviceUrl:
@@ -52,9 +55,9 @@ feign:
 
 logging:
   level:
-    ru.yandex.practicum.commerce.client: DEBUG
-    org.springframework.cloud.openfeign: DEBUG
     org.springframework.cloud.loadbalancer: DEBUG
     com.netflix.discovery: DEBUG
+    ru.yandex.practicum.commerce.client: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
     com.netflix.loadbalancer: DEBUG
     org.springframework.cloud.netflix.eureka: DEBUG
