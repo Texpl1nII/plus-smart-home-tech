@@ -35,3 +35,10 @@ eureka:
     enabled: true
   instance:
     preferIpAddress: true
+
+logging:
+  level:
+    ru.yandex.practicum.commerce.client: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
+    org.springframework.cloud.loadbalancer: DEBUG
+    com.netflix.discovery: DEBUG

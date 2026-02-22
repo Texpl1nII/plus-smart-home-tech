@@ -4,7 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.dto.*;
 
-@FeignClient(name = "warehouse")
+@FeignClient(name = "WAREHOUSE")
 public interface WarehouseClient {
 
     @PostMapping("/api/v1/warehouse/check")
