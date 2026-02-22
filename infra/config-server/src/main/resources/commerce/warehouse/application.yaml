@@ -1,13 +1,9 @@
 spring:
-  application:
-    name: warehouse
-
   datasource:
     url: jdbc:postgresql://localhost:5432/warehouse_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,16 +12,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-
-server:
-  port: 0
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    preferIpAddress: true
+    open-in-view: false
 
 logging:
   level:

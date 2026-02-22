@@ -1,13 +1,9 @@
 spring:
-  application:
-    name: shopping-cart
-
   datasource:
     url: jdbc:postgresql://localhost:5432/shopping_cart_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,16 +13,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-server:
-  port: 0
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    preferIpAddress: true
-
 feign:
   client:
     config:
@@ -34,8 +20,14 @@ feign:
         connectTimeout: 5000
         readTimeout: 5000
         loggerLevel: full
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
+  circuitbreaker:
+    enabled: false
 
 logging:
   level:
-    ru.yandex.practicum.commerce: DEBUG
-    org.hibernate.SQL: DEBUG
+    ru.yandex.practicum.commerce.client: DEBUG
+    org.springframework.cloud.openfeign: DEBUG

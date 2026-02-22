@@ -2,7 +2,7 @@ spring:
   application:
     name: shopping-cart
   config:
-    import: "configserver:http://localhost:8888"
+    import: configserver:http://localhost:8888
   cloud:
     config:
       discovery:
@@ -15,22 +15,6 @@ spring:
     loadbalancer:
       enabled: true
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/shopping-cart_db
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    open-in-view: false
-
 server:
   port: 0
 
@@ -40,22 +24,3 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
   instance:
     preferIpAddress: true
-
-feign:
-  client:
-    config:
-      warehouse:
-        connectTimeout: 5000
-        readTimeout: 5000
-        loggerLevel: full
-      default:
-        connectTimeout: 5000
-        readTimeout: 5000
-        loggerLevel: basic
-  circuitbreaker:
-    enabled: false
-
-logging:
-  level:
-    ru.yandex.practicum.commerce.client: DEBUG
-    org.springframework.cloud.openfeign: DEBUG
