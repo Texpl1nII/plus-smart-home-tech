@@ -35,8 +35,7 @@ public class CartServiceImpl implements CartService {
     @Override
     public ShoppingCartDto getCart(String username) {
         log.info("Getting cart for user: {}", username);
-        ShoppingCart cart = getOrCreateCart(username);
-        return cartMapper.toDto(cart);
+        return getOrCreateCart(username);  // просто вызываем существующий метод
     }
 
     @Override
@@ -124,8 +123,9 @@ public class CartServiceImpl implements CartService {
     public void deactivateCart(String username) {
         log.info("Deactivating cart for user: {}", username);
 
-        ShoppingCart cart = cartRepository.findByUserId(username)
-                .orElseThrow(() -> new CartNotActiveException("Cart not found for user: " + username));
+        ShoppingCart cart = cartRepository.findByUserIdAndActiveTrue(username)
+                .orElseThrow(() -> new CartNotActiveException(
+                        "No active cart found for user: " + username));
 
         cart.setActive(false);
         cartRepository.save(cart);
@@ -138,7 +138,16 @@ public class CartServiceImpl implements CartService {
     public ShoppingCartDto addProductsToCart(String username, Map<UUID, Long> products) {
         log.info("Adding multiple products to cart for user: {}", username);
 
-        ShoppingCart cart = getActiveCart(username);
+        // Пытаемся найти активную корзину
+        Optional<ShoppingCart> activeCart = cartRepository.findByUserIdAndActiveTrue(username);
+        ShoppingCart cart;
+
+        if (activeCart.isPresent()) {
+            cart = activeCart.get();
+        } else {
+            // Если нет активной, но есть неактивная - создаем новую
+            cart = createNewCart(username);
+        }
 
         for (Map.Entry<UUID, Long> entry : products.entrySet()) {
             UUID productId = entry.getKey();
@@ -172,7 +181,8 @@ public class CartServiceImpl implements CartService {
     public ShoppingCartDto removeProductsFromCart(String username, List<UUID> productIds) {
         log.info("Removing multiple products from cart for user: {}", username);
 
-        ShoppingCart cart = getActiveCart(username);
+        ShoppingCart cart = cartRepository.findByUserIdAndActiveTrue(username)
+                .orElseGet(() -> createNewCart(username));
 
         for (UUID productId : productIds) {
             itemRepository.findByCartAndProductId(cart, productId)
@@ -191,7 +201,8 @@ public class CartServiceImpl implements CartService {
         log.info("Changing quantity for product {} to {} for user: {}",
                 request.getProductId(), request.getNewQuantity(), username);
 
-        ShoppingCart cart = getActiveCart(username);
+        ShoppingCart cart = cartRepository.findByUserIdAndActiveTrue(username)
+                .orElseGet(() -> createNewCart(username));
 
         CartItem item = itemRepository.findByCartAndProductId(cart, request.getProductId())
                 .orElseThrow(() -> new ProductNotFoundException(
@@ -213,9 +224,12 @@ public class CartServiceImpl implements CartService {
                         "No active cart found for user: " + username));
     }
 
-    private ShoppingCart getOrCreateCart(String username) {
-        return cartRepository.findByUserId(username)
+    @Override
+    public ShoppingCartDto getOrCreateCart(String username) {
+        log.info("Getting or creating cart for user: {}", username);
+        ShoppingCart cart = cartRepository.findByUserId(username)
                 .orElseGet(() -> createNewCart(username));
+        return cartMapper.toDto(cart);
     }
 
     @Transactional

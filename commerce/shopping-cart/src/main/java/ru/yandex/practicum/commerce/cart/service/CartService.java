@@ -13,6 +13,8 @@ public interface CartService {
     // Существующие методы (ОБЯЗАТЕЛЬНЫ К РЕАЛИЗАЦИИ)
     ShoppingCartDto getCart(String username);
 
+    ShoppingCartDto getOrCreateCart(String username);
+
     ShoppingCartDto addProductToCart(String username, AddProductToCartRequest request);
 
     void removeProductFromCart(String username, UUID productId);  // ← этот метод должен быть!

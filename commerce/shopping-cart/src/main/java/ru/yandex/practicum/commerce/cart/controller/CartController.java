@@ -49,10 +49,14 @@ public class CartController implements ShoppingCartClient {
     @ResponseStatus(HttpStatus.CREATED)
     public ShoppingCartDto addProductToShoppingCart(
             @RequestParam String username,
-            @RequestBody Map<UUID, Long> products) {
+            @RequestBody(required = false) Map<UUID, Long> products) {
         log.info("PUT ?username={} - products: {}", username, products);
         if (username == null || username.isBlank()) {
             throw new NotAuthorizedUserException("Username is required");
+        }
+        if (products == null || products.isEmpty()) {
+            // Если тело пустое, создаем пустую корзину
+            return cartService.getOrCreateCart(username);
         }
         return cartService.addProductsToCart(username, products);
     }
@@ -60,13 +64,13 @@ public class CartController implements ShoppingCartClient {
     @PostMapping("/remove")
     public ShoppingCartDto removeFromShoppingCart(
             @RequestParam String username,
-            @RequestBody List<UUID> productIds) {
+            @RequestBody(required = false) List<UUID> productIds) {
         log.info("POST /remove?username={} - removing products: {}", username, productIds);
         if (username == null || username.isBlank()) {
             throw new NotAuthorizedUserException("Username is required");
         }
         if (productIds == null || productIds.isEmpty()) {
-            throw new IllegalArgumentException("Product IDs list must not be empty");
+            return cartService.getCart(username);
         }
         return cartService.removeProductsFromCart(username, productIds);
     }
@@ -74,11 +78,13 @@ public class CartController implements ShoppingCartClient {
     @PostMapping(value = "/change-quantity", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ShoppingCartDto changeProductQuantityWithBody(
             @RequestParam String username,
-            @Valid @RequestBody ChangeProductQuantityRequest request) {
-        log.info("POST /change-quantity?username={} (body) - product: {}, quantity: {}",
-                username, request.getProductId(), request.getNewQuantity());
+            @Valid @RequestBody(required = false) ChangeProductQuantityRequest request) {
+        log.info("POST /change-quantity?username={} (body)", username);
         if (username == null || username.isBlank()) {
             throw new NotAuthorizedUserException("Username is required");
+        }
+        if (request == null || request.getProductId() == null) {
+            return cartService.getCart(username);
         }
         return cartService.changeProductQuantity(username, request);
     }
@@ -86,12 +92,14 @@ public class CartController implements ShoppingCartClient {
     @PostMapping(value = "/change-quantity", params = {"productId", "newQuantity"})
     public ShoppingCartDto changeProductQuantityWithParams(
             @RequestParam String username,
-            @RequestParam UUID productId,
-            @RequestParam Long newQuantity) {
-        log.info("POST /change-quantity?username={} (params) - product: {}, quantity: {}",
-                username, productId, newQuantity);
+            @RequestParam(required = false) UUID productId,
+            @RequestParam(required = false) Long newQuantity) {
+        log.info("POST /change-quantity?username={} (params)", username);
         if (username == null || username.isBlank()) {
             throw new NotAuthorizedUserException("Username is required");
+        }
+        if (productId == null || newQuantity == null) {
+            return cartService.getCart(username);
         }
 
         ChangeProductQuantityRequest request = ChangeProductQuantityRequest.builder()
