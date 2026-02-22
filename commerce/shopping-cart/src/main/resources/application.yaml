@@ -38,23 +38,7 @@ eureka:
   instance:
     preferIpAddress: true
 
-warehouse:
-  url: http://10.1.0.237:37459
-
-feign:
-  client:
-    config:
-      default:
-        connectTimeout: 5000
-        readTimeout: 5000
-        loggerLevel: full
-      warehouse:
-        connectTimeout: 5000
-        readTimeout: 5000
-        loggerLevel: full
-
 logging:
   level:
     ru.yandex.practicum.commerce.client: DEBUG
     org.springframework.cloud.openfeign: DEBUG
-    feign: DEBUG

@@ -48,16 +48,7 @@ public class WarehouseController {
     public BookedProductsDto checkProductQuantityEnoughForShoppingCart(
             @RequestBody ShoppingCartDto cart) {
         log.info("POST /check - checking cart: {}", cart.getShoppingCartId());
-
-        BookedProductsDto result = warehouseService.checkAvailabilityForCart(cart);
-
-        if (result == null) {
-            throw new ProductInShoppingCartLowQuantityInWarehouse(
-                    warehouseService.getUnavailableProducts(cart)
-            );
-        }
-
-        return result;
+        return warehouseService.checkAvailabilityForCart(cart);
     }
 
     @PostMapping("/add")
