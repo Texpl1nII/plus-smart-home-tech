@@ -33,8 +33,22 @@ eureka:
     serviceUrl:
       defaultZone: http://localhost:8761/eureka/
     enabled: true
+    register-with-eureka: true
+    fetch-registry: true
   instance:
     preferIpAddress: true
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: full
+      WAREHOUSE:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: full
 
 logging:
   level:
@@ -42,3 +56,5 @@ logging:
     org.springframework.cloud.openfeign: DEBUG
     org.springframework.cloud.loadbalancer: DEBUG
     com.netflix.discovery: DEBUG
+    com.netflix.loadbalancer: DEBUG
+    org.springframework.cloud.netflix.eureka: DEBUG
