@@ -12,6 +12,8 @@ spring:
       retry:
         useRandomPolicy: true
         max-interval: 6000
+    loadbalancer:
+      enabled: true
 
   datasource:
     url: jdbc:postgresql://localhost:5432/shopping-cart_db
@@ -38,3 +40,22 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
   instance:
     preferIpAddress: true
+
+feign:
+  client:
+    config:
+      warehouse:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: full
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
+  circuitbreaker:
+    enabled: false
+
+logging:
+  level:
+    ru.yandex.practicum.commerce.client: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
