@@ -11,9 +11,9 @@ import java.util.UUID;
 @FeignClient(name = "shopping-store")
 public interface StoreClient {
 
-    @GetMapping("/api/v1/shopping-store/products/{productId}")
+    @GetMapping("/api/v1/shopping-store/{productId}")
     ProductDto getProduct(@PathVariable("productId") UUID productId);
 
-    @GetMapping("/api/v1/shopping-store/products")
+    @GetMapping("/api/v1/shopping-store")
     List<ProductDto> getProductsByCategory(@RequestParam("category") ProductCategory category);
 }

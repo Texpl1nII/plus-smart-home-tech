@@ -46,10 +46,8 @@ public class CartServiceImpl implements CartService {
 
         ShoppingCart cart = getActiveCart(username);
 
-        // Проверяем наличие на складе
         checkAvailability(username, request.getProductId(), request.getQuantity());
 
-        // Ищем существующий товар в корзине
         CartItem existingItem = itemRepository.findByCartAndProductId(cart, request.getProductId())
                 .orElse(null);
 
@@ -100,7 +98,6 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new ProductNotFoundException(
                         "Product not found in cart: " + productId));
 
-        // Проверяем наличие на складе
         checkAvailability(username, productId, newQuantity);
 
         item.setQuantity(newQuantity);
@@ -145,9 +142,8 @@ public class CartServiceImpl implements CartService {
 
         for (Map.Entry<UUID, Long> entry : products.entrySet()) {
             UUID productId = entry.getKey();
-            Integer quantity = entry.getValue().intValue();  // ⬅️ Конвертируем Long в Integer для внутреннего использования
+            Integer quantity = entry.getValue().intValue();
 
-            // Проверяем наличие на складе
             checkAvailability(username, productId, quantity);
 
             CartItem existingItem = itemRepository.findByCartAndProductId(cart, productId)
@@ -201,7 +197,6 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new ProductNotFoundException(
                         "Product not found in cart: " + request.getProductId()));
 
-        // Проверяем наличие на складе
         checkAvailability(username, request.getProductId(), request.getNewQuantity().intValue());
 
         item.setQuantity(request.getNewQuantity().intValue());
@@ -213,15 +208,9 @@ public class CartServiceImpl implements CartService {
     private ShoppingCart getActiveCart(String username) {
         log.info("Looking for active cart for user: {}", username);
 
-        Optional<ShoppingCart> activeCart = cartRepository.findByUserIdAndActiveTrue(username);
-
-        if (activeCart.isPresent()) {
-            log.info("Found active cart with id: {}", activeCart.get().getId());
-            return activeCart.get();
-        } else {
-            log.info("No active cart found, creating new one");
-            return createNewCart(username);
-        }
+        return cartRepository.findByUserIdAndActiveTrue(username)
+                .orElseThrow(() -> new CartNotActiveException(
+                        "No active cart found for user: " + username));
     }
 
     private ShoppingCart getOrCreateCart(String username) {

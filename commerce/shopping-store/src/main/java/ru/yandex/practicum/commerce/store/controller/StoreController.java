@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.commerce.client.StoreClient;
 import ru.yandex.practicum.commerce.dto.ProductDto;
 import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
@@ -26,9 +27,23 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/shopping-store")
 @RequiredArgsConstructor
-public class StoreController {
+public class StoreController implements StoreClient {
 
     private final StoreService storeService;
+
+    @Override
+    @GetMapping("/{productId}")
+    public ProductDto getProduct(@PathVariable UUID productId) {
+        log.info("GET /{}", productId);
+        return storeService.getProductById(productId);
+    }
+
+    @Override
+    @GetMapping
+    public List<ProductDto> getProductsByCategory(@RequestParam("category") ProductCategory category) {
+        log.info("GET with category: {}", category);
+        return storeService.getProductsByCategoryOld(category);
+    }
 
     @GetMapping(params = {"category", "page", "size", "sort"})
     public ResponseEntity<PageProductDto> getProductsWithPagination(
@@ -40,61 +55,16 @@ public class StoreController {
         log.info("GET with pagination - category={}&page={}&size={}&sort={}",
                 category, page, size, (Object[]) sort);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("name").descending());
+        // Используем parseSortCorrectly для создания сортировки из параметров
+        Sort sortObject = parseSortCorrectly(sort);
+        Pageable pageable = PageRequest.of(page, size, sortObject);
+
         Page<ProductDto> productPage = storeService.getProductsByCategory(category, pageable);
 
-        PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
-                .direction("DESC")
-                .property("productName")
-                .ascending(false)
-                .ignoreCase(false)
-                .sorted(true)
-                .unsorted(false)
-                .empty(false)
-                .build();
+        // Конвертируем в PageProductDto с правильными полями сортировки
+        PageProductDto response = convertToPageProductDto(productPage, sort, sortObject);
 
-        PageProductDto.PageableObject pageableObject = PageProductDto.PageableObject.builder()
-                .offset(productPage.getPageable().getOffset())
-                .pageNumber(productPage.getPageable().getPageNumber())
-                .pageSize(productPage.getPageable().getPageSize())
-                .paged(productPage.getPageable().isPaged())
-                .unpaged(productPage.getPageable().isUnpaged())
-                .sort(List.of(sortObj))
-                .sorted(true)
-                .unsorted(false)
-                .build();
-
-        return ResponseEntity.ok(PageProductDto.builder()
-                .content(productPage.getContent())
-                .totalPages(productPage.getTotalPages())
-                .totalElements(productPage.getTotalElements())
-                .size(productPage.getSize())
-                .number(productPage.getNumber())
-                .first(productPage.isFirst())
-                .last(productPage.isLast())
-                .empty(productPage.isEmpty())
-                .sort(List.of(sortObj))
-                .pageable(pageableObject)
-                .numberOfElements(productPage.getNumberOfElements())
-                .hasContent(productPage.hasContent())
-                .hasNext(productPage.hasNext())
-                .hasPrevious(productPage.hasPrevious())
-                .isFirst(productPage.isFirst())
-                .isLast(productPage.isLast())
-                .build());
-    }
-
-    @GetMapping(params = "category")
-    public ResponseEntity<List<ProductDto>> getProductsByCategoryOnly(
-            @RequestParam ProductCategory category) {
-        log.info("GET with category only: {}", category);
-        List<ProductDto> products = storeService.getProductsByCategoryOld(category);
-        return ResponseEntity.ok(products);
-    }
-
-    @GetMapping
-    public ResponseEntity<String> getDefault() {
-        return ResponseEntity.badRequest().body("Category parameter is required");
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping
@@ -113,12 +83,6 @@ public class StoreController {
         }
 
         return storeService.updateProduct(productDto.getProductId(), productDto);
-    }
-
-    @GetMapping("/{productId}")
-    public ProductDto getProduct(@PathVariable UUID productId) {
-        log.info("GET /{}", productId);
-        return storeService.getProductById(productId);
     }
 
     @PostMapping("/removeProductFromStore")
@@ -188,16 +152,15 @@ public class StoreController {
     private PageProductDto convertToPageProductDto(Page<ProductDto> page, String[] sortParams, Sort sort) {
         log.info("Converting to PageProductDto");
 
-        // Получаем оригинальные параметры сортировки из запроса
         String sortParam = sortParams[0];
         String[] parts = sortParam.split(",");
-        String originalField = parts[0]; // productName
+        String originalField = parts[0];
         String direction = parts.length > 1 ? parts[1] : "asc";
 
         List<PageProductDto.SortObject> sortObjects = new ArrayList<>();
         PageProductDto.SortObject sortObj = PageProductDto.SortObject.builder()
                 .direction(direction.toUpperCase())
-                .property(originalField) // Используем productName, а не name
+                .property(originalField)
                 .ascending(!"desc".equalsIgnoreCase(direction))
                 .ignoreCase(false)
                 .sorted(true)
@@ -209,7 +172,7 @@ public class StoreController {
         List<PageProductDto.SortObject> pageableSortObjects = new ArrayList<>();
         PageProductDto.SortObject pageableSortObj = PageProductDto.SortObject.builder()
                 .direction(direction.toUpperCase())
-                .property(originalField) // Используем productName, а не name
+                .property(originalField)
                 .ascending(!"desc".equalsIgnoreCase(direction))
                 .ignoreCase(false)
                 .sorted(true)

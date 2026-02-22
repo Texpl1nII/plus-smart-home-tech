@@ -7,9 +7,9 @@ import ru.yandex.practicum.commerce.dto.ShoppingCartDto;
 @FeignClient(name = "shopping-cart")
 public interface ShoppingCartClient {
 
-    @GetMapping("/api/v1/shopping-cart/{username}")
-    ShoppingCartDto getShoppingCart(@PathVariable("username") String username);
+    @GetMapping("/api/v1/shopping-cart")
+    ShoppingCartDto getShoppingCart(@RequestParam("username") String username);
 
-    @DeleteMapping("/api/v1/shopping-cart/{username}/deactivate")
-    void deactivateShoppingCart(@PathVariable("username") String username);
+    @DeleteMapping("/api/v1/shopping-cart")
+    void deactivateShoppingCart(@RequestParam("username") String username);
 }

@@ -30,7 +30,7 @@ public class AddressGenerator {
                 .city(currentAddress)
                 .street(currentAddress)
                 .house(currentAddress)
-                .apartment(currentAddress)
+                .flat(currentAddress)
                 .build();
     }
 }

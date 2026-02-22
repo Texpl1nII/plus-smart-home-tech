@@ -12,11 +12,6 @@ public class AddressDto {
     private String street;
     private String house;
 
-    @JsonProperty("apartment")  // для Jackson
-    private String apartment;
-
-    @JsonProperty("flat")       // тоже для обратной совместимости
-    public String getFlat() {
-        return apartment;
-    }
+    @JsonProperty("flat")
+    private String flat;
 }

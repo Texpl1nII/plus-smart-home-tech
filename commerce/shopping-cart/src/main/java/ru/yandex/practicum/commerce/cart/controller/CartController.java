@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.cart.ChangeProductQuantityRequest;
 import ru.yandex.practicum.commerce.cart.NotAuthorizedUserException;
 import ru.yandex.practicum.commerce.cart.service.CartService;
+import ru.yandex.practicum.commerce.client.ShoppingCartClient;
 import ru.yandex.practicum.commerce.dto.ShoppingCartDto;
 
 import java.util.List;
@@ -19,10 +20,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/shopping-cart")
 @RequiredArgsConstructor
-public class CartController {
+public class CartController implements ShoppingCartClient {
 
     private final CartService cartService;
 
+    @Override
     @GetMapping
     public ShoppingCartDto getShoppingCart(@RequestParam String username) {
         log.info("GET ?username={}", username);
@@ -30,6 +32,17 @@ public class CartController {
             throw new NotAuthorizedUserException("Username is required");
         }
         return cartService.getCart(username);
+    }
+
+    @Override
+    @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deactivateShoppingCart(@RequestParam String username) {
+        log.info("DELETE ?username={} - deactivating cart", username);
+        if (username == null || username.isBlank()) {
+            throw new NotAuthorizedUserException("Username is required");
+        }
+        cartService.deactivateCart(username);
     }
 
     @PutMapping
@@ -42,16 +55,6 @@ public class CartController {
             throw new NotAuthorizedUserException("Username is required");
         }
         return cartService.addProductsToCart(username, products);
-    }
-
-    @DeleteMapping
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deactivateCurrentShoppingCart(@RequestParam String username) {
-        log.info("DELETE ?username={} - deactivating cart", username);
-        if (username == null || username.isBlank()) {
-            throw new NotAuthorizedUserException("Username is required");
-        }
-        cartService.deactivateCart(username);
     }
 
     @PostMapping("/remove")
@@ -68,7 +71,6 @@ public class CartController {
         return cartService.removeProductsFromCart(username, productIds);
     }
 
-    // Метод для работы с телом запроса (JSON)
     @PostMapping(value = "/change-quantity", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ShoppingCartDto changeProductQuantityWithBody(
             @RequestParam String username,
@@ -81,7 +83,6 @@ public class CartController {
         return cartService.changeProductQuantity(username, request);
     }
 
-    // Метод для работы с параметрами запроса (для совместимости с тестами)
     @PostMapping(value = "/change-quantity", params = {"productId", "newQuantity"})
     public ShoppingCartDto changeProductQuantityWithParams(
             @RequestParam String username,
