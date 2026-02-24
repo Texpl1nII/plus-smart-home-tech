@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: shopping-cart
+  config:
+    import: configserver:http://localhost:8888
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        serviceId: config-server
+      fail-fast: true
+      retry:
+        useRandomPolicy: true
+        max-interval: 6000
+    loadbalancer:
+      enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+server:
+  port: 0
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+    enabled: true
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    preferIpAddress: true
+
+logging:
+  level:
+    ru.yandex.practicum.commerce.client: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
