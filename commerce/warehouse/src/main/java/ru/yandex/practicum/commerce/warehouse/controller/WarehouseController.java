@@ -16,6 +16,9 @@ import ru.yandex.practicum.commerce.warehouse.exceptions.NoSpecifiedProductInWar
 import ru.yandex.practicum.commerce.warehouse.exceptions.SpecifiedProductAlreadyInWarehouseException;
 import ru.yandex.practicum.commerce.warehouse.service.WarehouseService;
 
+import java.util.Map;
+import java.util.UUID;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/warehouse")
@@ -66,5 +69,26 @@ public class WarehouseController {
     public AddressDto getWarehouseAddress() {
         log.info("GET /address");
         return warehouseService.getWarehouseAddress();
+    }
+
+    @PostMapping("/assembly")
+    @ResponseStatus(HttpStatus.OK)
+    public void assemblyProductsForOrder(@RequestParam UUID orderId) {
+        log.info("POST /assembly for order: {}", orderId);
+        warehouseService.assemblyProductForOrderFromShoppingCart(orderId);
+    }
+
+    @PostMapping("/shipped")
+    @ResponseStatus(HttpStatus.OK)
+    public void shippedToDelivery(@RequestParam UUID orderId, @RequestParam UUID deliveryId) {
+        log.info("POST /shipped - order: {}, delivery: {}", orderId, deliveryId);
+        warehouseService.shippedToDelivery(orderId, deliveryId);
+    }
+
+    @PostMapping("/return")
+    @ResponseStatus(HttpStatus.OK)
+    public void returnProducts(@RequestParam UUID orderId, @RequestBody Map<UUID, Long> products) {
+        log.info("POST /return for order: {}", orderId);
+        warehouseService.returnProduct(orderId, products);
     }
 }

@@ -8,9 +8,13 @@ import ru.yandex.practicum.commerce.dto.*;
 import ru.yandex.practicum.commerce.warehouse.AddProductToWarehouseRequest;
 import ru.yandex.practicum.commerce.warehouse.BookedProductsDto;
 import ru.yandex.practicum.commerce.warehouse.NewProductInWarehouseRequest;
+import ru.yandex.practicum.commerce.warehouse.client.WarehouseClients;
 import ru.yandex.practicum.commerce.warehouse.exception.ProductNotFoundException;
+import ru.yandex.practicum.commerce.warehouse.exceptions.SpecifiedProductAlreadyInWarehouseException;
 import ru.yandex.practicum.commerce.warehouse.mapper.WarehouseMapper;
+import ru.yandex.practicum.commerce.warehouse.model.OrderBooking;
 import ru.yandex.practicum.commerce.warehouse.model.WarehouseProduct;
+import ru.yandex.practicum.commerce.warehouse.repository.OrderBookingRepository;
 import ru.yandex.practicum.commerce.warehouse.repository.WarehouseProductRepository;
 import ru.yandex.practicum.commerce.warehouse.service.WarehouseService;
 import ru.yandex.practicum.commerce.warehouse.util.AddressGenerator;
@@ -28,6 +32,8 @@ public class WarehouseServiceImpl implements WarehouseService {
     private final WarehouseProductRepository repository;
     private final WarehouseMapper mapper;
     private final AddressGenerator addressGenerator;
+    private final OrderBookingRepository bookingRepository;
+    private final WarehouseClients clients;
 
     @Override
     @Transactional
@@ -64,7 +70,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         log.info("Adding new product to warehouse: {}", request.getProductId());
 
         if (repository.existsById(request.getProductId())) {
-            throw new ru.yandex.practicum.commerce.warehouse.exceptions.SpecifiedProductAlreadyInWarehouseException(request.getProductId());
+            throw new SpecifiedProductAlreadyInWarehouseException(request.getProductId());
         }
 
         WarehouseProduct product = WarehouseProduct.builder()
@@ -228,5 +234,95 @@ public class WarehouseServiceImpl implements WarehouseService {
     public AddressDto getWarehouseAddress() {
         log.info("Getting warehouse address");
         return addressGenerator.getCurrentAddress();
+    }
+
+    @Override
+    @Transactional
+    public void assemblyProductForOrderFromShoppingCart(UUID orderId) {
+        log.info("Assembling products for order: {}", orderId);
+
+        // Получаем заказ из order сервиса
+        var order = clients.getOrderClient().getOrder(orderId);
+
+        if (order == null || order.getProducts() == null || order.getProducts().isEmpty()) {
+            log.error("Order {} has no products", orderId);
+            clients.getOrderClient().assemblyFailed(orderId);
+            throw new RuntimeException("Order has no products");
+        }
+
+        // Проверяем и уменьшаем остатки
+        for (Map.Entry<UUID, Long> entry : order.getProducts().entrySet()) {
+            UUID productId = entry.getKey();
+            Long requestedQuantity = entry.getValue();
+
+            WarehouseProduct product = repository.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+
+            if (product.getQuantity() < requestedQuantity.intValue()) {
+                log.error("Not enough quantity for product {}: requested {}, available {}",
+                        productId, requestedQuantity, product.getQuantity());
+                clients.getOrderClient().assemblyFailed(orderId);
+                throw new RuntimeException("Not enough products in warehouse");
+            }
+
+            // Уменьшаем остаток
+            product.setQuantity(product.getQuantity() - requestedQuantity.intValue());
+            repository.save(product);
+        }
+
+        // Сохраняем информацию о сборке
+        OrderBooking booking = OrderBooking.builder()
+                .orderId(orderId)
+                .products(order.getProducts())
+                .assembled(true)
+                .shipped(false)
+                .build();
+        bookingRepository.save(booking);
+
+        // Уведомляем order сервис об успешной сборке
+        clients.getOrderClient().assemblySuccess(orderId);
+        log.info("Order {} assembled successfully", orderId);
+    }
+
+    @Override
+    @Transactional
+    public void shippedToDelivery(UUID orderId, UUID deliveryId) {
+        log.info("Marking order {} as shipped to delivery: {}", orderId, deliveryId);
+
+        OrderBooking booking = bookingRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Order booking not found: " + orderId));
+
+        booking.setDeliveryId(deliveryId);
+        booking.setShipped(true);
+        bookingRepository.save(booking);
+
+        log.info("Order {} shipped to delivery {}", orderId, deliveryId);
+    }
+
+    @Override
+    @Transactional
+    public void returnProduct(UUID orderId, Map<UUID, Long> products) {
+        log.info("Processing return for order {} with {} products", orderId, products.size());
+
+        // Находим бронирование заказа
+        OrderBooking booking = bookingRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Order booking not found: " + orderId));
+
+        // Возвращаем товары на склад
+        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+            UUID productId = entry.getKey();
+            Long quantity = entry.getValue();
+
+            WarehouseProduct product = repository.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+
+            product.setQuantity(product.getQuantity() + quantity.intValue());
+            repository.save(product);
+        }
+
+        // Обновляем статус в order сервисе
+        clients.getOrderClient().returnOrder(orderId);
+
+        log.info("Products returned successfully for order {}", orderId);
     }
 }
