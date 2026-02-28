@@ -62,7 +62,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>ru.yandex.practicum.practicum.infra.gateway.telemetry.aggregator.AggregatorApplication</mainClass>
+                    <mainClass>ru.yandex.practicum.telemetry.aggregator.AggregatorApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
