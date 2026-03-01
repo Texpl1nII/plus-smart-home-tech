@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Value;
-import ru.yandex.practicum.practicum.infra.gateway.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.telemetry.collector.kafka.KafkaClientProducer;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
 

@@ -7,7 +7,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.factory.annotation.Autowired;
-import ru.yandex.practicum.practicum.infra.gateway.grpc.telemetry.collector.CollectorControllerGrpc;
+import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.*;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
 import ru.yandex.practicum.telemetry.collector.dto.sensor.SensorEvent;

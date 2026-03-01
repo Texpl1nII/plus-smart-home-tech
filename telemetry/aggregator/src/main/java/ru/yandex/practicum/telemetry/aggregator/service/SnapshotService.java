@@ -2,10 +2,9 @@ package ru.yandex.practicum.telemetry.aggregator.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.kafka.telemetry.event.*;
-import ru.yandex.practicum.practicum.infra.gateway.kafka.telemetry.event.SensorEventAvro;
-import ru.yandex.practicum.practicum.infra.gateway.kafka.telemetry.event.SensorStateAvro;
-import ru.yandex.practicum.practicum.infra.gateway.kafka.telemetry.event.SensorsSnapshotAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorStateAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 
 import java.time.Instant;
 import java.util.HashMap;

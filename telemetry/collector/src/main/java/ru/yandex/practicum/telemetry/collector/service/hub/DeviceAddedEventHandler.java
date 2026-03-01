@@ -1,8 +1,8 @@
 package ru.yandex.practicum.telemetry.collector.service.hub;
 
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.practicum.infra.gateway.kafka.telemetry.event.DeviceAddedEventAvro;
-import ru.yandex.practicum.practicum.infra.gateway.kafka.telemetry.event.DeviceTypeAvro;
+import ru.yandex.practicum.kafka.telemetry.event.DeviceAddedEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.DeviceTypeAvro;
 import ru.yandex.practicum.telemetry.collector.kafka.KafkaClientProducer;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEventType;

@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.telemetry.analyzer.kafka.KafkaClient;
-import ru.yandex.practicum.telemetry.analyzer.service.SnapshotHandler; // ← ПРАВИЛЬНЫЙ импорт!
+import ru.yandex.practicum.telemetry.analyzer.service.SnapshotHandler;
 
 import java.time.Duration;
 import java.util.List;
