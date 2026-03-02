@@ -1,10 +1,6 @@
 package ru.yandex.practicum.commerce.warehouse.service;
 
-import ru.yandex.practicum.commerce.dto.AddressDto;
-import ru.yandex.practicum.commerce.dto.ProductAvailabilityRequest;
-import ru.yandex.practicum.commerce.dto.ProductAvailabilityResponse;
-import ru.yandex.practicum.commerce.dto.ShoppingCartDto;
-import ru.yandex.practicum.commerce.dto.WarehouseProductDto;
+import ru.yandex.practicum.commerce.dto.*;
 import ru.yandex.practicum.commerce.warehouse.AddProductToWarehouseRequest;
 import ru.yandex.practicum.commerce.warehouse.BookedProductsDto;
 import ru.yandex.practicum.commerce.warehouse.NewProductInWarehouseRequest;
@@ -35,4 +31,10 @@ public interface WarehouseService {
     void addProductQuantity(AddProductToWarehouseRequest request);
 
     Map<UUID, Integer> getUnavailableProducts(ShoppingCartDto cart);
+
+    void assemblyProductForOrderFromShoppingCart(UUID orderId);
+
+    void shippedToDelivery(UUID orderId, UUID deliveryId);
+
+    void returnProduct(UUID orderId, Map<UUID, Long> products);
 }

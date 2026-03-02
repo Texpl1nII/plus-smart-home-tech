@@ -3,9 +3,9 @@ package ru.yandex.practicum.commerce.store.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
+import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 import ru.yandex.practicum.commerce.dto.enums.ProductCategory;
 import ru.yandex.practicum.commerce.dto.enums.ProductStatus;
-import ru.yandex.practicum.commerce.dto.enums.AvailabilityStatus;
 
 import java.util.UUID;
 

@@ -1,7 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.controller;
 
 import com.google.protobuf.Empty;
-import com.google.protobuf.Timestamp;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -10,10 +9,10 @@ import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.*;
-import ru.yandex.practicum.telemetry.collector.dto.hub.*;
 import ru.yandex.practicum.telemetry.collector.dto.hub.HubEvent;
-import ru.yandex.practicum.telemetry.collector.dto.sensor.*;
 import ru.yandex.practicum.telemetry.collector.dto.sensor.SensorEvent;
+import ru.yandex.practicum.telemetry.collector.dto.hub.*;
+import ru.yandex.practicum.telemetry.collector.dto.sensor.*;
 import ru.yandex.practicum.telemetry.collector.service.hub.HubEventHandler;
 import ru.yandex.practicum.telemetry.collector.service.sensor.SensorEventHandler;
 

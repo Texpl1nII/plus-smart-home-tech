@@ -7,6 +7,8 @@ import ru.yandex.practicum.kafka.telemetry.event.*;
 import ru.yandex.practicum.telemetry.analyzer.handler.HubEventHandler;
 import ru.yandex.practicum.telemetry.analyzer.model.*;
 import ru.yandex.practicum.telemetry.analyzer.repository.*;
+import ru.yandex.practicum.telemetry.analyzer.model.*;
+import ru.yandex.practicum.telemetry.analyzer.repository.*;
 
 import java.util.Optional;
 

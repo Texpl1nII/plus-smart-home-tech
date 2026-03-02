@@ -1,0 +1,42 @@
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        # Shopping Store
+        - id: shopping_store_route
+          uri: lb://shopping-store
+          predicates:
+            - Path=/api/v1/store/**
+          filters:
+            - StripPrefix=1
+            - name: Retry
+              args:
+                retries: 3
+                statuses: NOT_FOUND
+                methods: GET
+                series: SERVER_ERROR
+
+        # Shopping Cart
+        - id: shopping_cart_route
+          uri: lb://shopping-cart
+          predicates:
+            - Path=/api/v1/cart/**
+          filters:
+            - StripPrefix=1
+
+        # Warehouse
+        - id: warehouse_route
+          uri: lb://warehouse
+          predicates:
+            - Path=/api/v1/warehouse/**
+          filters:
+            - StripPrefix=1
+
+        # Health check route (для тестирования Gateway)
+        - id: gateway_health
+          uri: http://localhost:8080
+          predicates:
+            - Path=/actuator/health

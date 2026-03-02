@@ -18,6 +18,9 @@
         <module>shopping-store</module>
         <module>shopping-cart</module>
         <module>warehouse</module>
+        <module>order</module>
+        <module>payment</module>
+        <module>delivery</module>
     </modules>
 
     <properties>
@@ -80,6 +83,20 @@
         <dependency>
             <groupId>io.github.openfeign</groupId>
             <artifactId>feign-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.xmlunit</groupId>
+            <artifactId>xmlunit-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.6.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 

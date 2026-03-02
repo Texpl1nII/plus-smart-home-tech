@@ -45,6 +45,13 @@ public class CartController implements ShoppingCartClient {
         cartService.deactivateCart(username);
     }
 
+    @Override
+    @GetMapping("/user/{userId}")
+    public List<ShoppingCartDto> getUserCarts(@PathVariable UUID userId) {
+        log.info("GET /user/{}", userId);
+        return List.of();
+    }
+
     @PutMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ShoppingCartDto addProductToShoppingCart(
@@ -55,7 +62,6 @@ public class CartController implements ShoppingCartClient {
             throw new NotAuthorizedUserException("Username is required");
         }
         if (products == null || products.isEmpty()) {
-            // Если тело пустое, создаем пустую корзину
             return cartService.getOrCreateCart(username);
         }
         return cartService.addProductsToCart(username, products);
