@@ -8,6 +8,7 @@ import ru.yandex.practicum.commerce.dto.payment.PaymentDto;
 import ru.yandex.practicum.commerce.dto.payment.PaymentRequest;
 import ru.yandex.practicum.commerce.payment.service.PaymentService;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Slf4j
@@ -19,15 +20,15 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/calculate/products")
-    public Double calculateProductsCost(@RequestParam UUID orderId) {
+    public BigDecimal calculateProductsCost(@RequestParam UUID orderId) {
         log.info("POST /api/v1/payment/calculate/products?orderId={}", orderId);
-        return paymentService.calculateProductsCost(orderId);
+        return paymentService.calculateProductsCost(orderId);  // Убрали BigDecimal.valueOf()
     }
 
     @PostMapping("/calculate/total")
-    public Double calculateTotalCost(@RequestParam UUID orderId) {
+    public BigDecimal calculateTotalCost(@RequestParam UUID orderId) {
         log.info("POST /api/v1/payment/calculate/total?orderId={}", orderId);
-        return paymentService.calculateTotalCost(orderId);
+        return paymentService.calculateTotalCost(orderId);  // Убрали BigDecimal.valueOf()
     }
 
     @PostMapping

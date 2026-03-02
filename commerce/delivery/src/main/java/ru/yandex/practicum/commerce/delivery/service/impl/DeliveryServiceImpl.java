@@ -10,8 +10,9 @@ import ru.yandex.practicum.commerce.delivery.model.Delivery;
 import ru.yandex.practicum.commerce.delivery.repository.DeliveryRepository;
 import ru.yandex.practicum.commerce.delivery.service.DeliveryService;
 import ru.yandex.practicum.commerce.dto.delivery.DeliveryDto;
-import ru.yandex.practicum.commerce.dto.delivery.DeliveryState;
+import ru.yandex.practicum.commerce.dto.enums.DeliveryState;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Slf4j
@@ -28,8 +29,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     public DeliveryDto planDelivery(DeliveryDto deliveryDto) {
         log.info("Planning delivery for order: {}", deliveryDto.getOrderId());
 
-        // Рассчитываем стоимость доставки
-        double cost = calculateDeliveryCost(deliveryDto);
+        BigDecimal cost = calculateDeliveryCost(deliveryDto);  // теперь OK
 
         Delivery delivery = deliveryMapper.toEntity(deliveryDto);
         delivery.setDeliveryCost(cost);
@@ -42,40 +42,45 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     @Override
-    public Double calculateDeliveryCost(DeliveryDto deliveryDto) {
+    public BigDecimal calculateDeliveryCost(DeliveryDto deliveryDto) {  // long -> BigDecimal
         log.info("Calculating delivery cost for order: {}", deliveryDto.getOrderId());
 
-        // Алгоритм из ТЗ
-        double baseRate = 5.0;
-        double cost = baseRate;
+        BigDecimal baseRate = new BigDecimal("5.0");
+        BigDecimal cost = baseRate;
 
-        // 1. Адрес склада (fromAddress)
+        // 1. Адрес склада
         String warehouseAddress = deliveryDto.getFromAddress().getStreet();
-        if (warehouseAddress.contains("ADDRESS_2")) {
-            cost += baseRate * 2;  // умножаем на 2 и прибавляем к базовой
-        } else if (warehouseAddress.contains("ADDRESS_1")) {
-            cost += baseRate * 1;
+        if (warehouseAddress != null && warehouseAddress.contains("ADDRESS_2")) {
+            cost = cost.add(baseRate.multiply(new BigDecimal("2")));
+        } else if (warehouseAddress != null && warehouseAddress.contains("ADDRESS_1")) {
+            cost = cost.add(baseRate.multiply(new BigDecimal("1")));
         }
 
         // 2. Хрупкость
         if (Boolean.TRUE.equals(deliveryDto.getFragile())) {
-            cost += cost * 0.2;
+            cost = cost.add(cost.multiply(new BigDecimal("0.2")));
         }
 
         // 3. Вес
-        cost += deliveryDto.getWeight() * 0.3;
-
-        // 4. Объём
-        cost += deliveryDto.getVolume() * 0.2;
-
-        // 5. Адрес доставки (совпадение улицы)
-        if (!deliveryDto.getFromAddress().getStreet()
-                .equals(deliveryDto.getToAddress().getStreet())) {
-            cost += cost * 0.2;
+        if (deliveryDto.getWeight() != null) {
+            cost = cost.add(new BigDecimal(deliveryDto.getWeight().toString())
+                    .multiply(new BigDecimal("0.3")));
         }
 
-        log.info("Calculated delivery cost: {}", cost);
-        return cost;
+        // 4. Объём
+        if (deliveryDto.getVolume() != null) {
+            cost = cost.add(new BigDecimal(deliveryDto.getVolume().toString())
+                    .multiply(new BigDecimal("0.2")));
+        }
+
+        // 5. Адрес доставки
+        if (deliveryDto.getFromAddress() != null && deliveryDto.getToAddress() != null &&
+                !deliveryDto.getFromAddress().getStreet()
+                        .equals(deliveryDto.getToAddress().getStreet())) {
+            cost = cost.add(cost.multiply(new BigDecimal("0.2")));
+        }
+
+        return cost;  // теперь возвращаем BigDecimal
     }
 
     @Override
@@ -89,7 +94,6 @@ public class DeliveryServiceImpl implements DeliveryService {
         delivery.setState(DeliveryState.DELIVERED);
         deliveryRepository.save(delivery);
 
-        // Уведомляем сервис заказов
         clients.getOrderClient().deliverySuccess(delivery.getOrderId());
 
         log.info("Delivery {} marked as DELIVERED", deliveryId);
@@ -106,7 +110,6 @@ public class DeliveryServiceImpl implements DeliveryService {
         delivery.setState(DeliveryState.FAILED);
         deliveryRepository.save(delivery);
 
-        // Уведомляем сервис заказов
         clients.getOrderClient().deliveryFailed(delivery.getOrderId());
 
         log.info("Delivery {} marked as FAILED", deliveryId);

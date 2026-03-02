@@ -3,7 +3,9 @@ package ru.yandex.practicum.commerce.dto.delivery;
 import lombok.Data;
 import lombok.Builder;
 import ru.yandex.practicum.commerce.dto.AddressDto;
+import ru.yandex.practicum.commerce.dto.enums.DeliveryState;
 
+import java.math.BigDecimal;  // добавить импорт
 import java.util.UUID;
 
 @Data
@@ -17,5 +19,5 @@ public class DeliveryDto {
     private Double weight;
     private Boolean fragile;
     private DeliveryState state;
-    private Double deliveryCost;
+    private BigDecimal deliveryCost;
 }

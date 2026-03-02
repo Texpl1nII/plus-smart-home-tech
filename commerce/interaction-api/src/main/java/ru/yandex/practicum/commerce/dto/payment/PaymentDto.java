@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.Builder;
 import ru.yandex.practicum.commerce.dto.enums.PaymentStatus;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Data
@@ -11,8 +12,8 @@ import java.util.UUID;
 public class PaymentDto {
     private UUID paymentId;
     private UUID orderId;
-    private Double productsTotal;
-    private Double deliveryTotal;
+    private BigDecimal productsTotal;
+    private BigDecimal deliveryTotal;
     private Double total;
     private PaymentStatus status;
 }

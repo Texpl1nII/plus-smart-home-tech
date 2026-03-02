@@ -3,12 +3,15 @@ package ru.yandex.practicum.commerce.order.model;
 import jakarta.persistence.*;
 import lombok.*;
 import ru.yandex.practicum.commerce.dto.enums.OrderState;
+
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
 @Entity
 @Table(name = "orders")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,7 +22,7 @@ public class Order {
     private UUID orderId;
 
     @Column(nullable = false)
-    private UUID shoppingCartId;
+    private String shoppingCartId;
 
     @ElementCollection
     @CollectionTable(name = "order_products",
@@ -30,10 +33,9 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     private OrderState state;
-
-    private Double totalPrice;
-    private Double productsPrice;
-    private Double deliveryPrice;
+    private BigDecimal totalPrice;
+    private BigDecimal productsPrice;
+    private BigDecimal deliveryPrice;
     private Double volume;
     private Double weight;
     private Boolean fragile;

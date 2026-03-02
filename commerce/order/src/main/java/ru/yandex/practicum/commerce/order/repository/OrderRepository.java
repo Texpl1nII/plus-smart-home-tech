@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findAllByState(OrderState state);
     List<Order> findAllByShoppingCartId(UUID shoppingCartId);
+    List<Order> findAllByShoppingCartIdIn(List<String> shoppingCartIds);
 }

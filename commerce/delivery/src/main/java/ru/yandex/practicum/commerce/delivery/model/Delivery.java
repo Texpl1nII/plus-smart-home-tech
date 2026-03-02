@@ -3,13 +3,15 @@ package ru.yandex.practicum.commerce.delivery.model;
 import jakarta.persistence.*;
 import lombok.*;
 import ru.yandex.practicum.commerce.dto.AddressDto;
-import ru.yandex.practicum.commerce.dto.delivery.DeliveryState;
+import ru.yandex.practicum.commerce.dto.enums.DeliveryState;
 
+import java.math.BigDecimal;  // добавить импорт
 import java.util.UUID;
 
 @Entity
 @Table(name = "deliveries")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -49,5 +51,5 @@ public class Delivery {
     @Enumerated(EnumType.STRING)
     private DeliveryState state;
 
-    private Double deliveryCost;
+    private BigDecimal deliveryCost;  // ИЗМЕНЕНО: Double -> BigDecimal
 }

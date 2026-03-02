@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.Builder;
 import ru.yandex.practicum.commerce.dto.enums.OrderState;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -14,9 +15,9 @@ public class OrderDto {
     private UUID shoppingCartId;
     private Map<UUID, Long> products; // productId -> quantity
     private OrderState state;
-    private Double totalPrice;
+    private BigDecimal totalPrice;
     private Double productsPrice;
-    private Double deliveryPrice;
+    private BigDecimal deliveryPrice;;
     private Double volume;
     private Double weight;
     private Boolean fragile;

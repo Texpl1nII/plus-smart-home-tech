@@ -15,6 +15,7 @@ import ru.yandex.practicum.commerce.payment.model.Payment;
 import ru.yandex.practicum.commerce.payment.repository.PaymentRepository;
 import ru.yandex.practicum.commerce.payment.service.PaymentService;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,17 +29,17 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentClients clients;
 
     @Override
-    public Double calculateProductsCost(UUID orderId) {
+    public BigDecimal calculateProductsCost(UUID orderId) {
         log.info("Calculating products cost for order: {}", orderId);
 
-        // Получаем заказ
         OrderDto order = clients.getOrderClient().getOrder(orderId);
 
-        // Получаем цены товаров из shopping-store
-        double total = 0.0;
+        BigDecimal total = BigDecimal.ZERO;
         for (Map.Entry<UUID, Long> entry : order.getProducts().entrySet()) {
             ProductDto product = clients.getStoreClient().getProduct(entry.getKey());
-            total += product.getPrice() * entry.getValue();
+            BigDecimal price = BigDecimal.valueOf(product.getPrice());
+            BigDecimal quantity = BigDecimal.valueOf(entry.getValue());
+            total = total.add(price.multiply(quantity));
         }
 
         log.info("Products total cost: {}", total);
@@ -46,21 +47,27 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Double calculateTotalCost(UUID orderId) {
+    public BigDecimal calculateTotalCost(UUID orderId) {
         log.info("Calculating total cost for order: {}", orderId);
 
         // 1. Стоимость товаров
-        double productsCost = calculateProductsCost(orderId);
+        BigDecimal productsCost = calculateProductsCost(orderId);
 
         // 2. НДС 10%
-        double tax = productsCost * 0.1;
+        BigDecimal tax = productsCost.multiply(new BigDecimal("0.1"));
 
-        // 3. Получаем заказ (там уже есть стоимость доставки)
+        // 3. Стоимость доставки
         OrderDto order = clients.getOrderClient().getOrder(orderId);
-        double deliveryCost = order.getDeliveryPrice() != null ? order.getDeliveryPrice() : 0.0;
+        BigDecimal deliveryCost = BigDecimal.ZERO;
 
-        // 4. Итог: товары + налог + доставка
-        double total = productsCost + tax + deliveryCost;
+        // Проверяем тип deliveryPrice и конвертируем правильно
+        Object deliveryPriceObj = order.getDeliveryPrice();
+        if (deliveryPriceObj instanceof Number) {
+            deliveryCost = BigDecimal.valueOf(((Number) deliveryPriceObj).doubleValue());
+        }
+
+        // 4. Итог
+        BigDecimal total = productsCost.add(tax).add(deliveryCost);
 
         log.info("Total cost: products={}, tax={}, delivery={}, total={}",
                 productsCost, tax, deliveryCost, total);
@@ -73,12 +80,10 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentDto createPayment(PaymentRequest request) {
         log.info("Creating payment for order: {}", request.getOrderId());
 
-        // Рассчитываем стоимости
-        double productsCost = calculateProductsCost(request.getOrderId());
-        double deliveryCost = 0.0; // будет получено из заказа
-        double total = calculateTotalCost(request.getOrderId());
+        BigDecimal productsCost = calculateProductsCost(request.getOrderId());
+        BigDecimal deliveryCost = BigDecimal.ZERO;
+        BigDecimal total = calculateTotalCost(request.getOrderId());
 
-        // Создаём платёж
         Payment payment = Payment.builder()
                 .orderId(request.getOrderId())
                 .productsTotal(productsCost)
@@ -104,7 +109,6 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setStatus(PaymentStatus.SUCCESS);
         paymentRepository.save(payment);
 
-        // Уведомляем сервис заказов
         clients.getOrderClient().paymentSuccess(payment.getOrderId());
 
         log.info("Payment {} marked as SUCCESS", paymentId);
@@ -121,7 +125,6 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setStatus(PaymentStatus.FAILED);
         paymentRepository.save(payment);
 
-        // Уведомляем сервис заказов
         clients.getOrderClient().paymentFailed(payment.getOrderId());
 
         log.info("Payment {} marked as FAILED", paymentId);

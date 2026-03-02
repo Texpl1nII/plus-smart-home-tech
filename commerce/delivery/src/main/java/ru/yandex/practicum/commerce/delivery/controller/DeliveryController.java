@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.delivery.service.DeliveryService;
 import ru.yandex.practicum.commerce.dto.delivery.DeliveryDto;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Slf4j
@@ -25,7 +26,7 @@ public class DeliveryController {
     }
 
     @PostMapping("/cost")
-    public Double calculateDeliveryCost(@RequestBody DeliveryDto deliveryDto) {
+    public BigDecimal calculateDeliveryCost(@RequestBody DeliveryDto deliveryDto) {
         log.info("POST /api/v1/delivery/cost - for order: {}", deliveryDto.getOrderId());
         return deliveryService.calculateDeliveryCost(deliveryDto);
     }

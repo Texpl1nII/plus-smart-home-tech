@@ -14,27 +14,26 @@ public interface OrderClient {
     OrderDto createOrder(@RequestBody CreateOrderRequest request);
 
     @GetMapping("/{orderId}")
-    OrderDto getOrder(@PathVariable("orderId") UUID orderId);
+    OrderDto getOrder(@PathVariable UUID orderId);
 
     @PostMapping("/{orderId}/payment/success")
-    void paymentSuccess(@PathVariable("orderId") UUID orderId);
+    void paymentSuccess(@PathVariable UUID orderId);
 
     @PostMapping("/{orderId}/payment/failed")
-    void paymentFailed(@PathVariable("orderId") UUID orderId);
+    void paymentFailed(@PathVariable UUID orderId);
 
     @PostMapping("/{orderId}/delivery/success")
-    void deliverySuccess(@PathVariable("orderId") UUID orderId);
+    void deliverySuccess(@PathVariable UUID orderId);
 
     @PostMapping("/{orderId}/delivery/failed")
-    void deliveryFailed(@PathVariable("orderId") UUID orderId);
+    void deliveryFailed(@PathVariable UUID orderId);
 
-    // НОВЫЕ МЕТОДЫ ДЛЯ СКЛАДА
     @PostMapping("/{orderId}/assembly/success")
-    void assemblySuccess(@PathVariable("orderId") UUID orderId);
+    void assemblySuccess(@PathVariable UUID orderId);
 
     @PostMapping("/{orderId}/assembly/failed")
-    void assemblyFailed(@PathVariable("orderId") UUID orderId);
+    void assemblyFailed(@PathVariable UUID orderId);
 
     @PostMapping("/{orderId}/return")
-    void returnOrder(@PathVariable("orderId") UUID orderId);
+    void returnOrder(@PathVariable UUID orderId);
 }

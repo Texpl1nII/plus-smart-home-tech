@@ -16,6 +16,7 @@ import ru.yandex.practicum.commerce.dto.order.OrderDto;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -35,7 +36,7 @@ public class OrderServiceImpl implements OrderService {
                 .getShoppingCart(String.valueOf(request.getShoppingCartId()));
 
         Order order = Order.builder()
-                .shoppingCartId(request.getShoppingCartId())
+                .shoppingCartId(String.valueOf(request.getShoppingCartId()))
                 .products(cart.getProducts())
                 .state(OrderState.NEW)
                 .build();
@@ -55,8 +56,25 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderDto> getUserOrders(UUID userId) {
-        // TODO: получить корзины пользователя и найти заказы
-        return List.of();
+        log.info("Getting orders for user: {}", userId);
+
+        // Получаем корзины пользователя
+        List<ShoppingCartDto> userCarts = clients.getShoppingCartClient()
+                .getUserCarts(userId);
+
+        // Собираем ID всех корзин (теперь это String)
+        List<String> cartIds = userCarts.stream()
+                .map(ShoppingCartDto::getShoppingCartId)
+                .collect(Collectors.toList());
+
+        // Находим все заказы по этим корзинам
+        List<Order> orders = orderRepository.findAllByShoppingCartIdIn(cartIds);
+
+        log.info("Found {} orders for user {}", orders.size(), userId);
+
+        return orders.stream()
+                .map(orderMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
